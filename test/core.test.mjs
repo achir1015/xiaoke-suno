@@ -89,6 +89,9 @@ test('設定碼：編碼、解碼、拒絕其他網址', () => {
   assert.deepEqual(decodePairing(code), { url: 'https://script.google.com/macros/s/X/exec', token: 'tok' });
   assert.equal(decodePairing('XKS1.' + Buffer.from(JSON.stringify({ url: 'https://evil.example/', token: 't' })).toString('base64')), null);
   assert.equal(decodePairing('XKT1.abc'), null);
+  assert.deepEqual(decodePairing(' ' + code.slice(0, 20) + ' 
+' + code.slice(20) + '
+'), { url: 'https://script.google.com/macros/s/X/exec', token: 'tok' }, '中間夾空白換行也能讀');
 });
 
 test('雲端 suno.gs：金鑰、同步、新的贏、上傳同名覆蓋', () => {

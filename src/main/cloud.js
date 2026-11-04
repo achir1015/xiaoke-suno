@@ -6,7 +6,8 @@ const path = require('path');
 
 function encodePairing(url, token) { return 'XKS1.' + Buffer.from(JSON.stringify({ url, token }), 'utf8').toString('base64'); }
 function decodePairing(code) {
-  const m = /^XKS1\.([A-Za-z0-9+/=_-]+)$/.exec(String(code || '').trim());
+  // 從對話、網頁複製長字串時中間常被夾進空白或換行：全部拿掉再解
+  const m = /^XKS1\.([A-Za-z0-9+/=_-]+)$/.exec(String(code || '').replace(/\s+/g, ''));
   if (!m) return null;
   try {
     const o = JSON.parse(Buffer.from(m[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
