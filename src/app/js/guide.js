@@ -7,9 +7,13 @@ import { go } from './app.js';
 // 每一課：標題、內文（會被念出來）、示意圖亮哪一塊、「指給我看」的目標與要先切到的分頁
 export const LESSONS = [
   { t: '歡迎使用', hl: 'all', target: null,
+    m: ['您好，我是小柯機器人！這個工具可以把您在 Suno 做的歌，一次批量下載成 MP3 音檔和 SRT 字幕，檔名和 Suno 上的歌名一模一樣，存在手機的「下載/小柯SUNO」資料夾。',
+      '畫面下方是分頁：歌曲庫、Suno 網頁、下載佇列和小柯助手；上面有使用說明、檢查更新和設定。接下來我一課一課帶您看。'],
     p: ['您好，我是小柯機器人！這個工具可以把您在 Suno 做的歌，一次批量下載成 MP3 音檔和 SRT 字幕，檔名和 Suno 上的歌名一模一樣，剪影片、做卡拉 OK 都很方便。',
       '畫面左邊是選單：歌曲庫、Suno 網頁、下載佇列；上面有使用說明、檢查更新和設定。接下來我一課一課帶您看。'] },
   { t: '登入 Suno', hl: 'side', target: '#nav-suno', view: 'suno',
+    m: ['用 Google 帳號的話，Google 不允許在 App 裡面登入。請在電腦版小柯的「Suno 網頁」按「帶到手機」，電腦會顯示一個 QR Code。',
+      '再到手機的「Suno 網頁」按「掃描電腦的 QR Code」，對準電腦畫面，就登入好了，雲端設定也會一起帶過來。用電子郵件等其他方式，也可以直接在 App 裡面登入。'],
     p: ['第一步，按左邊的「Suno 網頁」。這是 App 裡面的 Suno 網站，請在這裡登入您的 Suno 帳號。帳號密碼是直接交給 Suno 的，小柯看不到。',
       '如果您是用 Google 帳號登入，Google 不允許在 App 裡面登入，請按右上角的「用 Chrome 登入」：小柯會打開一個 Chrome 視窗，在那裡登入 Suno，看到自己的歌後關掉視窗，登入狀態就會自動帶進來。登入一次就會記住，右上角會顯示您的 Suno 名稱。'] },
   { t: '讀取全部歌曲', hl: 'tools', target: '#btnRefresh', view: 'library',
@@ -66,7 +70,8 @@ function art(hl) {
 let state = { i: 0, auto: true };
 
 export function openGuide(start) {
-  const list0 = LESSONS;
+  // 手機版有些課用不同的說法（m）
+  const list0 = document.documentElement.classList.contains('mobile') ? LESSONS.map((l) => ({ ...l, p: l.m || l.p })) : LESSONS;
   if (typeof start === 'number') state.i = start;
   let alive = true, token = 0;
   const list = h('div', { class: 'g-list' });

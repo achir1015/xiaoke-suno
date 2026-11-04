@@ -194,7 +194,7 @@ button.mk.on { opacity: 1; box-shadow: 0 0 0 2px color-mix(in srgb, var(--mc) 50
 /* ---------- 帶到手機 QR ---------- */
 .pair { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .pair ol { text-align: left; line-height: 1.8; }
-.qrbox { width: min(360px, 80vw); background: #fff; padding: 8px; border-radius: 12px; transition: filter .2s; }
+.qrbox { width: min(460px, 80vw); background: #fff; padding: 8px; border-radius: 12px; transition: filter .2s; }
 .qrbox svg { width: 100%; height: auto; display: block; }
 .qrbox.blur { filter: blur(14px); }
 .scanbox { position: relative; width: min(340px, 86vw); aspect-ratio: 1; margin: 0 auto; border-radius: 14px; overflow: hidden; background: #000; }

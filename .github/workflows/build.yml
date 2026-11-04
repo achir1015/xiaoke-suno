@@ -75,5 +75,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" out/* --clobber
           else
-            gh release create "$TAG" out/* --title "小柯機器人SUNO工具 $TAG" --notes "批量下載 Suno 歌曲 MP3 與 SRT 字幕（檔名同 Suno 歌名）、邊聽邊看字幕、LRC／歌詞／封面／WAV、OpenAI AI 助手、Google 雲端儲存、語音文字說明、自動更新。系統開發：吳玉柱 先生 與 Claude AI Opus 5.5"
+            gh release create "$TAG" out/* --title "小柯機器人SUNO工具 $TAG" --notes "批量下載 Suno 歌曲 MP3 與 SRT 字幕（檔名同 Suno 歌名）、邊聽邊看字幕、LRC／歌詞／封面／WAV、OpenAI AI 助手、Google 雲端儲存、語音文字說明、自動更新。Windows、Mac（Apple 晶片／Intel）、Android（XiaokeSuno-版本-android.apk）。系統開發：吳玉柱 先生 與 Claude AI Opus 5.5"
           fi
