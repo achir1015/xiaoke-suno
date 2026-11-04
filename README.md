@@ -1,6 +1,6 @@
-# 小柯機器人SUNO工具 https://achir1015.github.io/xiaoke-suno/
+# 小柯機器人SUNO工具 https://achir1015.github.io/xiaoke-suno/online/
 <img width="1918" height="1079" alt="image" src="https://github.com/user-attachments/assets/a5dc79bb-0bb6-47fd-a21d-ec3658d51ef3" />
-
+線上版：https://achir1015.github.io/xiaoke-suno/
 把您在 [Suno](https://suno.com) 做的歌，一次批量下載成 **MP3 音檔** 和 **SRT 字幕**，檔名和 Suno 上的歌名一模一樣；下載前後都能「**邊聽邊看字幕**」，確認歌聲和字幕時間對得上。全面繁體中文介面。
 
 系統開發：吳玉柱 先生 與 Claude AI Opus 5.5
