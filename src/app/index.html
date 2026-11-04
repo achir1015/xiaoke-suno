@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' app:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.suno.ai https://*.suno.com https://*.googleusercontent.com https://*.clerk.com http://127.0.0.1:*; media-src 'self' app: https://*.suno.ai https://*.suno.com http://127.0.0.1:*; connect-src 'self' https://api.openai.com https://api.github.com; font-src 'self'">
+  <title>小柯機器人SUNO工具</title>
+  <link rel="icon" href="img/logo64.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header id="topbar"></header>
+  <div id="shell">
+    <aside id="side" aria-label="選單"></aside>
+    <main id="main">
+      <section id="v-library" class="view"></section>
+      <section id="v-suno" class="view" hidden></section>
+      <section id="v-queue" class="view" hidden></section>
+      <div class="player" id="player" hidden></div>
+    </main>
+    <aside id="agent" aria-label="小柯助手"></aside>
+  </div>
+  <div id="toasts" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+{
+  "name": "xiaoke-suno",
+  "productName": "小柯機器人SUNO工具",
+  "version": "1.0.0",
+  "description": "小柯機器人SUNO工具：批量下載 Suno 歌曲 MP3 與 SRT 字幕（檔名同 Suno 歌名）、LRC、歌詞、封面、WAV；OpenAI AI 助手、Google 雲端儲存、語音文字說明、自動更新",
+  "main": "src/main/main.js",
+  "author": {
+    "name": "吳玉柱",
+    "email": "achir1015@gmail.com"
+  },
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/core.test.mjs",
+    "e2e": "node e2e/smoke.mjs",
+    "icon": "python scripts/make_icon.py",
+    "dist:win": "electron-builder --win nsis --x64 --publish never && electron-builder --win portable --x64 --publish never",
+    "dist:mac": "electron-builder --mac dmg --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.2.1",
+    "electron-builder": "26.15.6",
+    "playwright-core": "^1.64.1"
+  },
+  "build": {
+    "appId": "com.achir.xiaokesuno",
+    "productName": "小柯機器人SUNO工具",
+    "artifactName": "XiaokeSuno-${version}-${os}-${arch}.${ext}",
+    "copyright": "Copyright © 2026 吳玉柱",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "executableName": "XiaokeSuno"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "小柯機器人SUNO工具",
+      "uninstallDisplayName": "小柯機器人SUNO工具",
+      "language": "1028",
+      "installerLanguages": [
+        "zh_TW"
+      ]
+    },
+    "portable": {
+      "artifactName": "XiaokeSuno-${version}-win-x64-portable.${ext}"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.png",
+      "category": "public.app-category.music",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "identity": "-"
+    },
+    "dmg": {
+      "title": "小柯機器人SUNO工具 ${version}"
+    },
+    "npmRebuild": false
+  }
+}

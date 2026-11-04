@@ -1,0 +1,79 @@
+name: 建置安裝檔（Windows / macOS）
+
+on:
+  push:
+    branches: [main]
+    paths: ['package.json', 'src/**', 'build/**', 'gas/**', '.github/workflows/build.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci --ignore-scripts
+      - run: npm test
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: win-x64
+          # Apple 晶片與 Intel 分開建置，避免 hdiutil 卸載失敗
+          - os: macos-latest
+            args: --mac dmg --arm64
+            name: mac-arm64
+          - os: macos-latest
+            args: --mac dmg --x64
+            name: mac-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - name: electron-builder（Windows：安裝版和免安裝版分開建，同時建會鎖檔）
+        if: runner.os == 'Windows'
+        run: npm run dist:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: electron-builder（Mac）
+        if: runner.os == 'macOS'
+        run: npx electron-builder ${{ matrix.args }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.name }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: out, merge-multiple: true }
+      - name: 建立 Release（版本號取自 package.json，同版本已存在則更新附件）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(node -p "require('./package.json').version")
+          TAG="v$VER"
+          ls -la out
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/* --clobber
+          else
+            gh release create "$TAG" out/* --title "小柯機器人SUNO工具 $TAG" --notes "批量下載 Suno 歌曲 MP3 與 SRT 字幕（檔名同 Suno 歌名）、邊聽邊看字幕、LRC／歌詞／封面／WAV、OpenAI AI 助手、Google 雲端儲存、語音文字說明、自動更新。系統開發：吳玉柱 先生 與 Claude AI Opus 5.5"
+          fi

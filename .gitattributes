@@ -1,0 +1,8 @@
+* text=auto
+*.sh text eol=lf
+ios/** text eol=lf
+*.png binary
+*.ico binary
+*.jks binary
+*.mp3 binary
+*.jpg binary
