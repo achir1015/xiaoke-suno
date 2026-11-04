@@ -1,7 +1,7 @@
 {
   "name": "xiaoke-suno",
   "productName": "小柯機器人SUNO工具",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "小柯機器人SUNO工具：批量下載 Suno 歌曲 MP3 與 SRT 字幕（檔名同 Suno 歌名）、LRC、歌詞、封面、WAV；OpenAI AI 助手、Google 雲端儲存、語音文字說明、自動更新",
   "main": "src/main/main.js",
   "author": {
