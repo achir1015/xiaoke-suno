@@ -123,7 +123,7 @@ function renderList() {
       h('img', { src: 'img/robot96.png', alt: '', width: 96, height: 96 }),
       h('h3', {}, '歌曲庫還是空的'),
       h('ol', {},
-        h('li', {}, '先到左邊「🌐 Suno 網頁」登入您的 Suno 帳號。'),
+        h('li', {}, '先到「🌐 Suno 網頁」登入您的 Suno 帳號（手機用 Google 帳號的話，請從電腦版按「📱 帶到手機」掃 QR Code）。'),
         h('li', {}, '回來按「☁️ 讀取我的全部歌曲」，或在 Suno 打開工作區後按「📥 抓取 Suno 目前頁面」。'),
         h('li', {}, '勾選要的歌，按「⬇️ 下載所選」，MP3 和 SRT 字幕就會用 Suno 的歌名存好。')),
       h('div', { class: 'row-gap' }, h('button', { class: 'btn primary', onclick: () => go('suno') }, '🌐 前往 Suno 登入'), h('button', { class: 'btn', onclick: () => import('./guide.js').then((g) => g.openGuide(0)) }, '📖 聽使用說明'))));
