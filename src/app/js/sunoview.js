@@ -91,7 +91,7 @@ export async function chromeLogin(fromGoogle) {
     h('ol', {},
       h('li', {}, `小柯打開了一個新的 ${info.name} 視窗（和您平常的 ${info.name} 分開）。`),
       h('li', {}, '在那個視窗登入 Suno（用 Google 登入沒問題），看到自己的歌曲就好了。'),
-      h('li', {}, `關掉那個 ${info.name} 視窗，或按下面的「我登入好了」，小柯會自動把登入狀態帶進來。`)),
+      h('li', {}, info.mac ? `按下面的「我登入好了」，或在 ${info.name} 按 ⌘Q 結束它（Mac 只關視窗不會結束），小柯會自動把登入狀態帶進來。` : `關掉那個 ${info.name} 視窗，或按下面的「我登入好了」，小柯會自動把登入狀態帶進來。`)),
     h('p', { class: 'muted' }, '帳號密碼是直接交給 Google 和 Suno，小柯只會帶入 Suno 的登入狀態。'),
     msg),
     buttons: [{ label: '取消', onClick: (close) => { xk.suno.chromeDone(); cancelled = true; close(); } }] });

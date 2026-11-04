@@ -69,6 +69,7 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "identity": "-"
     },
+    "afterSign": "build/adhoc-sign.cjs",
     "dmg": {
       "title": "小柯機器人SUNO工具 ${version}"
     },

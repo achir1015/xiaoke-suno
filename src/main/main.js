@@ -321,7 +321,7 @@ handle('suno:logout', async () => {
 
 // 用 Chrome 登入（Google 帳號不能在內建網頁登入時用）
 const chromeLogin = new ChromeLogin(path.join(app.getPath('userData'), 'chrome-login'));
-handle('suno:chromeInfo', () => { const b = chromeLogin.browser; return { name: b ? b.name : '', open: !!chromeLogin.child }; });
+handle('suno:chromeInfo', () => { const b = chromeLogin.browser; return { name: b ? b.name : '', open: !!chromeLogin.child, mac: process.platform === 'darwin' }; });
 handle('suno:chromeLogin', async () => {
   // 測試時可用環境變數改登入網址、cookie 網域與 Chrome 參數（例如放到螢幕外）
   const name = await chromeLogin.open(process.env.XIAOKE_SUNO_LOGIN_URL || 'https://suno.com/me', (process.env.XIAOKE_CHROME_ARGS || '').split(' ').filter(Boolean));
