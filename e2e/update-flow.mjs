@@ -5,8 +5,9 @@ import path from 'path';
 import fs from 'fs';
 import { execFileSync } from 'child_process';
 
-const exe = path.join(process.env.LOCALAPPDATA, 'Programs', 'XiaokeSuno', 'XiaokeSuno.exe');
-const ver = () => execFileSync('powershell', ['-NoProfile', '-Command', `(Get-Item '${exe}').VersionInfo.ProductVersion`]).toString().trim();
+const exe = [path.join(process.env.LOCALAPPDATA, 'Programs', 'XiaokeSuno', 'XiaokeSuno.exe'), path.join(process.env.ProgramFiles, 'XiaokeSuno', 'XiaokeSuno.exe')].find((p) => fs.existsSync(p));
+// 安裝途中舊檔會暫時不見，讀不到時回傳空字串
+const ver = () => { try { return fs.existsSync(exe) ? execFileSync('powershell', ['-NoProfile', '-Command', `(Get-Item '${exe}').VersionInfo.ProductVersion`]).toString().trim() : ''; } catch { return ''; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const before = ver();
 console.log('安裝版目前：', before);
@@ -21,7 +22,7 @@ console.log('下載完成：', file, Math.round(fs.statSync(file).size / 1048576
 await win.evaluate((f) => window.xk.update.install(f), file).catch(() => {});
 // 安裝程式靜默安裝後會自動開新版（--force-run）；等版本號變了
 let after = before;
-for (let i = 0; i < 90 && after === before; i++) { await sleep(2000); try { after = ver(); } catch {} }
+for (let i = 0; i < 90 && (after === before || !after); i++) { await sleep(2000); after = ver(); }
 console.log('安裝後：', after);
 // 新版會自動打開（使用者平常的那份設定），這就是正常的更新流程，不去關它
 console.log(after.startsWith(r.latest) ? `✔ 程式內更新 ${before} → ${after}` : '✘ 版本沒有變');
