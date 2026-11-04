@@ -437,6 +437,8 @@ handle('ai:test', async () => {
 handle('cloud:connect', async (code) => {
   const o = decodePairing(code);
   if (!o) throw new Error('設定碼不正確（應該是 XKS1. 開頭）');
+  // /dev 只有在瀏覽器登入的本人能用，App 連過去會被拒絕（401）
+  if (/\/dev(\?|$)/.test(o.url)) throw new Error('這個設定碼是 /dev 測試網址，App 連不上。請把 suno.gs 的 SUNO_EXEC_URL 填成部署的 /exec 網址，再執行一次 setupSuno，貼上新的設定碼');
   settings.cloud.url = o.url;
   settings.cloud.tokenEnc = encrypt(o.token);
   settings.cloud.cursor = 0; settings.cloud.pushed = 0;
