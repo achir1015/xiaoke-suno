@@ -10,3 +10,6 @@ ios/** text eol=lf
 *.cjs text eol=lf
 ios/** text eol=lf
 *.sh text eol=lf
+*.png binary
+*.ipa binary
+*.apk binary
