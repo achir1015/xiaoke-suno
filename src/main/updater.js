@@ -149,7 +149,9 @@ class Updater {
   async install(file) {
     const f = flavor();
     if (f === 'nsis') {
-      await launchWithRetry(file, ['/S', '--force-run']);
+      // 原本裝在哪就更新在哪：不指定時靜默安裝可能改裝到 Program Files（所有使用者）
+      const perUser = process.execPath.toLowerCase().startsWith(path.join(process.env.LOCALAPPDATA || '', 'Programs').toLowerCase());
+      await launchWithRetry(file, ['/S', '--force-run', perUser ? '/currentuser' : '/allusers']);
       setTimeout(() => app.quit(), 400);
       return { quitting: true };
     }
