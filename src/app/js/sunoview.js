@@ -22,8 +22,8 @@ export function renderSuno(host) {
       LINKS.map(([ic, t, u]) => h('button', { class: 'btn small ghost', onclick: () => xk.suno.nav('url', u) }, ic, ' ', t)),
       h('span', { class: 'url', id: 'snUrl' }),
       h('span', { class: 'sp' }),
-      xk.platform === 'android' && h('button', { class: 'btn small primary', id: 'snQR', title: '掃描電腦版小柯「📱 帶到手機」的 QR Code，帶入 Suno 登入狀態', onclick: () => scanPairQR() }, '📷 掃描電腦的 QR Code'),
-      xk.platform !== 'android' && h('button', { class: 'btn small primary', id: 'snChrome', title: 'Google 帳號不能在這裡登入時用：開 Chrome 登入後把登入狀態帶進來', onclick: () => chromeLogin() }, '🔑 用 Chrome 登入'),
+      xk.mobile && h('button', { class: 'btn small primary', id: 'snQR', title: '掃描電腦版小柯「📱 帶到手機」的 QR Code，帶入 Suno 登入狀態', onclick: () => scanPairQR() }, '📷 掃描電腦的 QR Code'),
+      !xk.mobile && h('button', { class: 'btn small primary', id: 'snChrome', title: 'Google 帳號不能在這裡登入時用：開 Chrome 登入後把登入狀態帶進來', onclick: () => chromeLogin() }, '🔑 用 Chrome 登入'),
       h('button', { class: 'btn small', id: 'snSong', hidden: true, onclick: downloadThis }, '⬇️ 下載這首'),
       h('button', { class: 'btn small primary', id: 'snScan', onclick: () => scanPage() }, '📥 抓取這一頁的歌曲'),
       h('button', { class: 'btn small', id: 'snPhone', hidden: true, title: '用手機版小柯掃描 QR Code，把 Suno 登入狀態和雲端設定帶到手機', onclick: () => showPairQR() }, '📱 帶到手機'),
@@ -57,11 +57,11 @@ export function sunoStateChanged() {
   if ($('#snQR')) $('#snQR').hidden = !!s.loggedIn;
   if (s.loggedIn && !S.quota) refreshQuota();
   // Google 擋下內建網頁的登入：直接帶使用者改用 Chrome 登入
-  if (/accounts\.google\.com\/.*(rejected|disallowed)/.test(s.url || '') && !chromeBusy && rejectedShown !== s.url) { rejectedShown = s.url; if (xk.platform === 'android') googleOnPhone(); else chromeLogin(true); }
+  if (/accounts\.google\.com\/.*(rejected|disallowed)/.test(s.url || '') && !chromeBusy && rejectedShown !== s.url) { rejectedShown = s.url; if (xk.mobile) googleOnPhone(); else chromeLogin(true); }
   const tip = $('#snTip');
   if (s.error) tip.textContent = `⚠️ ${s.error}，請按 ⟳ 重新整理或檢查網路。`;
   else if (s.loggedIn) tip.textContent = '✅ 已登入。打開工作區或播放清單再按「抓取這一頁的歌曲」，或回到歌曲庫按「讀取我的全部歌曲」。網頁上 Suno 自己的下載鈕也會存到下載資料夾。';
-  else tip.textContent = xk.platform === 'android'
+  else tip.textContent = xk.mobile
     ? '🔑 用 Google 帳號的話，請在電腦版小柯按「📱 帶到手機」，再按上面的「📷 掃描電腦的 QR Code」。用電子郵件等其他方式，可以直接在上面登入。'
     : '🔑 請在上面登入您的 Suno 帳號（帳號密碼直接交給 Suno，小柯不會看到）。用 Google 帳號登入的話，請按右上角「用 Chrome 登入」。';
 }

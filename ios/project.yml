@@ -1,0 +1,63 @@
+name: XiaokeSuno
+options:
+  bundleIdPrefix: com.achir
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.6"
+    CURRENT_PROJECT_VERSION: "10006"
+targets:
+  XiaokeSuno:
+    type: application
+    platform: iOS
+    sources:
+      - path: XiaokeSuno
+      - path: web            # 和 Android 版同一份手機版網頁（sync.sh 從 ../mobile/www 複製進來）
+        type: folder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.achir.xiaokesuno
+        TARGETED_DEVICE_FAMILY: "1,2"     # iPhone 與 iPad
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 7BN6XJ59KP      # Apple Developer Program（個人）
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: XiaokeSuno/Info.plist
+      properties:
+        CFBundleDisplayName: 小柯SUNO
+        CFBundleDevelopmentRegion: zh_TW
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: ""
+        UIViewControllerBasedStatusBarAppearance: false
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIRequiresFullScreen: false
+        # 下載的 MP3、SRT 放在 App 的「文件」，在「檔案」App →「我的 iPhone／iPad」→ 小柯SUNO 看得到
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        NSCameraUsageDescription: 掃描電腦版小柯「帶到手機」的 QR Code，帶入 Suno 登入狀態
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+schemes:
+  XiaokeSuno:
+    build:
+      targets:
+        XiaokeSuno: all
+    run:
+      config: Debug
+    archive:
+      config: Release

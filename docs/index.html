@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小柯機器人SUNO工具</title>
+<meta name="description" content="批量下載 Suno 歌曲 MP3 與 SRT 字幕（檔名同 Suno 歌名）、邊聽邊看字幕、AI 助手、雲端儲存。Windows、Mac、Android、iPhone／iPad。">
+<link rel="icon" href="ios/icon-180.png">
+<link rel="apple-touch-icon" href="ios/icon-180.png">
+<style>
+  :root { --bg: #0d0d12; --card: #1d1d28; --line: #3a3a4c; --fg: #ececf3; --dim: #a9a9bb; --acc: #fb923c; --acc2: #ec4899; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: radial-gradient(1200px 600px at 30% -10%, #4a1d3a, var(--bg) 60%); color: var(--fg); font: 17px/1.65 -apple-system, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif; min-height: 100vh; }
+  main { max-width: 980px; margin: 0 auto; padding: 28px 18px 60px; }
+  .hero { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .hero img { width: 132px; height: 132px; border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  h1 { margin: 0; font-size: 34px; letter-spacing: 1px; background: linear-gradient(90deg, var(--fg), var(--acc)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--dim); margin: 4px 0 0; }
+  h2 { color: var(--acc); margin: 38px 0 12px; font-size: 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 19px; }
+  .card p { margin: 0 0 10px; color: var(--dim); font-size: 15px; }
+  .card a.dl { display: inline-block; margin: 4px 6px 0 0; padding: 8px 14px; border-radius: 9px; background: linear-gradient(135deg, #f97316, #db2777); color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; }
+  ul.feat { margin: 0; padding-left: 1.2em; }
+  ul.feat li { margin: 6px 0; }
+  .note { color: var(--dim); font-size: 14px; }
+  footer { margin-top: 44px; color: var(--dim); font-size: 14px; text-align: center; }
+  @media (max-width: 560px) { h1 { font-size: 26px; } .hero img { width: 96px; height: 96px; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <img src="ios/icon-512.png" alt="小柯機器人SUNO工具圖示">
+    <div>
+      <h1>小柯機器人SUNO工具</h1>
+      <p class="sub">批量下載 Suno 的 MP3 ＋ SRT 字幕，檔名和 Suno 歌名一樣．邊聽邊看字幕．<span id="ver"></span></p>
+    </div>
+  </div>
+
+  <h2>下載安裝</h2>
+  <div class="grid">
+    <div class="card"><h3>🪟 Windows 11</h3><p>安裝版會在桌面建立捷徑；免安裝版下載後直接執行。</p>
+      <a class="dl" data-asset="win-x64.exe" href="https://github.com/achir1015/xiaoke-suno/releases/latest">安裝版</a>
+      <a class="dl" data-asset="win-x64-portable.exe" href="https://github.com/achir1015/xiaoke-suno/releases/latest">免安裝版</a></div>
+    <div class="card"><h3>🍎 MacBook</h3><p>依晶片選擇。第一次開啟若被擋，到「系統設定 → 隱私權與安全性」按「仍要打開」。</p>
+      <a class="dl" data-asset="mac-arm64.dmg" href="https://github.com/achir1015/xiaoke-suno/releases/latest">Apple 晶片</a>
+      <a class="dl" data-asset="mac-x64.dmg" href="https://github.com/achir1015/xiaoke-suno/releases/latest">Intel 晶片</a></div>
+    <div class="card"><h3>🤖 Android 手機</h3><p>用手機下載後點開安裝（需允許「安裝未知應用程式」）。檔案存在「下載/小柯SUNO」。</p>
+      <a class="dl" data-asset="android.apk" href="https://github.com/achir1015/xiaoke-suno/releases/latest">下載 APK</a></div>
+    <div class="card"><h3>📱 iPhone／iPad</h3><p>用 Safari 開安裝頁，按一下就裝好（限開發者登記過的裝置）。檔案在「檔案」App 的「小柯SUNO」。</p>
+      <a class="dl" href="ios/">開啟安裝頁</a></div>
+  </div>
+
+  <h2>功能</h2>
+  <ul class="feat">
+    <li>登入自己的 Suno 帳號，一次讀取全部歌曲，或抓取某個工作區、播放清單。</li>
+    <li>批量下載 MP3、SRT 字幕、LRC、歌詞、封面、WAV；檔名同 Suno 歌名，同名的歌自動加 (1)，MP3 與 SRT 一定同名。</li>
+    <li>SRT 用 Suno 的對時歌詞產生，可設定提早秒數，自動去掉段落標籤與括號裡的編曲說明。</li>
+    <li>邊聽邊看字幕：歌聲唱到哪句，字幕就亮哪句，還能放大成卡拉 OK 畫面。</li>
+    <li>MP3／WAV 走 Suno 官方「解鎖並下載」，下載前會告訴您會用掉幾次下載次數；解鎖過的歌不重複扣。</li>
+    <li>手機用 Google 帳號：在電腦版按「📱 帶到手機」，手機掃 QR Code 就登入。</li>
+    <li>小柯助手（OpenAI）、Google 雲端硬碟同步、標記與顏色、語音文字使用說明、自動更新。</li>
+  </ul>
+  <p class="note">本工具為非官方工具，與 Suno 公司無關；只會下載您自己帳號裡有權限的歌曲，請遵守 Suno 的服務條款。</p>
+  <footer>系統開發：吳玉柱 先生 與 Claude AI Opus 5.5 · <a href="https://github.com/achir1015/xiaoke-suno" style="color:var(--dim)">GitHub</a></footer>
+</main>
+<script>
+  // 下載鈕直接連到最新版的檔案
+  fetch('https://api.github.com/repos/achir1015/xiaoke-suno/releases/latest').then(function (r) { return r.json(); }).then(function (o) {
+    document.getElementById('ver').textContent = o.tag_name || '';
+    (o.assets || []).forEach(function (a) {
+      document.querySelectorAll('a[data-asset]').forEach(function (el) { if (a.name.endsWith('-' + el.dataset.asset)) el.href = a.browser_download_url; });
+    });
+  }).catch(function () {});
+</script>
+</body>
+</html>

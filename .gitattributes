@@ -8,3 +8,5 @@ ios/** text eol=lf
 *.jpg binary
 *.plist text eol=lf
 *.cjs text eol=lf
+ios/** text eol=lf
+*.sh text eol=lf

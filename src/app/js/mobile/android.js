@@ -1,12 +1,25 @@
-// Android 版的平台介面（取代桌面版 preload 的 window.xk）
+// 手機版（Android／iPhone／iPad）的平台介面（取代桌面版 preload 的 window.xk）
 // 桌面版主程式（Node）做的事：歌曲庫、下載佇列、Suno 連線、雲端、AI、更新，在這裡用網頁 JS 完成；
 // 存檔（下載/小柯SUNO）、帶登入 cookie 的連線、Suno 網頁、語音、安裝新版交給 Android 原生（window.XiaokeAndroid）
-const A = window.XiaokeAndroid;
+// iPhone／iPad：WKWebView 的 window.webkit.messageHandlers.xks（有回覆的 postMessage），包成和 Android 一樣的介面
+const IOS = !window.XiaokeAndroid && !!window.XiaokeIOS;
+function iosBridge() {
+  const post = (cmd, args) => window.webkit.messageHandlers.xks.postMessage({ cmd, args });
+  return {
+    call: (id, method, argsJson) => post('call', [method, argsJson]).then((r) => window.__xkRes(id, true, r), (e) => window.__xkRes(id, false, String((e && e.message) || e))),
+    appInfo: () => JSON.stringify({ status: 'ok', ...window.XiaokeIOS }),
+    sunoBounds: (x, y, w, h) => { post('sunoBounds', [x, y, w, h]); },
+    sunoVisible: (v) => { post('sunoVisible', [!!v]); },
+    sunoNav: (a, u) => { post('sunoNav', [a, u || '']); },
+    openUrl: (u) => { post('openUrl', [u]); return true; },
+  };
+}
+const A = IOS ? iosBridge() : window.XiaokeAndroid;
 const SRT = window.XkSrt;
 const NAMING = window.XkNaming;
 const API = 'https://studio-api-prod.suno.com';
 const SITE = 'https://suno.com/a';
-const FOLDER = '下載/小柯SUNO';
+const FOLDER = IOS ? '檔案 App →「我的 iPhone／iPad」→ 小柯SUNO' : '下載/小柯SUNO';
 const FORMATS = ['mp3', 'srt', 'lrc', 'txt', 'jpg', 'wav'];
 const MIME = { mp3: 'audio/mpeg', wav: 'audio/wav', srt: 'application/x-subrip', lrc: 'text/plain', txt: 'text/plain', jpg: 'image/jpeg' };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -467,7 +480,8 @@ let updInfo = null;
 // ---------------- 文字轉語音：給 voice.js 用 ----------------
 const ttsDone = new Map();
 window.__xkTtsDone = (id) => { const f = ttsDone.get(id); if (f) { ttsDone.delete(id); f(); } };
-window.xkNative = {
+// iPhone／iPad 的 WKWebView 有網頁語音（speechSynthesis），不用原生
+window.xkNative = IOS ? { mobile: true } : {
   mobile: true,
   tts: {
     available: () => A.ttsAvailable(),
@@ -481,9 +495,10 @@ window.xkNative = {
 export function makeXk() {
   const info = JSON.parse(A.appInfo());
   return {
-    platform: 'android',
+    platform: IOS ? 'ios' : 'android',
+    mobile: true,
     settings: { get: async () => publicSettings(), set: async (p) => setSettings(p) },
-    sys: { info: async () => ({ platform: 'android', version: info.version, packaged: true, userData: FOLDER, model: info.model }) },
+    sys: { info: async () => ({ platform: IOS ? 'ios' : 'android', version: info.version, packaged: true, userData: FOLDER, model: info.model }) },
     openExternal: async (url) => A.openUrl(url),
     onToast: on('app:toast'),
     onZoom: on('app:zoom'),
@@ -618,10 +633,11 @@ export function makeXk() {
     },
     update: {
       check: async () => {
-        const r = JSON.parse(A.checkUpdate());
+        // iPhone／iPad：查 GitHub 最新版，安裝要回到安裝頁（itms-services）
+        const r = IOS ? await iosLatest() : JSON.parse(A.checkUpdate());
         if (r.status !== 'ok') throw new Error(r.message || '查詢失敗');
         const cmp = (a, b) => { const pa = a.split('.').map(Number), pb = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0); return 0; };
-        updInfo = { current: r.current, latest: r.latest, newer: cmp(r.latest, r.current) > 0, notes: r.notes || '', page: r.page, asset: r.url ? { name: r.url.split('/').pop(), url: r.url } : null, canInstall: !!r.url };
+        updInfo = { current: r.current, latest: r.latest, newer: cmp(r.latest, r.current) > 0, notes: r.notes || '', page: r.page, asset: r.url ? { name: r.url.split('/').pop(), url: r.url } : null, canInstall: !IOS && !!r.url };
         return updInfo;
       },
       // 交給 Android 下載 APK 並打開安裝畫面；進度用輪詢
@@ -642,6 +658,13 @@ export function makeXk() {
       onProgress: on('update:progress'),
     },
   };
+}
+
+async function iosLatest() {
+  const res = await fetch('https://api.github.com/repos/achir1015/xiaoke-suno/releases/latest', { headers: { Accept: 'application/vnd.github+json' } });
+  if (!res.ok) throw new Error(`查詢失敗（${res.status}）`);
+  const o = await res.json();
+  return { status: 'ok', current: JSON.parse(A.appInfo()).version, latest: String(o.tag_name || '').replace(/^v/, ''), notes: o.body || '', page: 'https://achir1015.github.io/xiaoke-suno/ios/', url: '' };
 }
 
 // 啟動時：雲端自動同步一次
