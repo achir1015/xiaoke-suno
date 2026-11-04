@@ -76,6 +76,29 @@ function isInstruction(text, section, start, end) {
   return prompt.length >= 2 || compressed || (sectionCue && prompt.length >= 1);
 }
 
+// 整行都是括號裡的說明（例如「(竹笛悠揚起音，古箏輕撥)」）：Suno 不會唱，只給不到一秒、還跟下一句擠在同一刻
+function isStageDirection(text, start, end, nextStart, words) {
+  if (!/^(?:\s*(?:\([^()]*\)|（[^（）]*）)\s*)+$/.test(text)) return false;
+  const dur = start !== null && end !== null ? end - start : null;
+  const sameAsNext = start !== null && nextStart !== null && Math.abs(nextStart - start) < 0.05;
+  return sameAsNext || (dur !== null && dur < 1.0) || words <= 1;
+}
+
+// 行首、行尾的演唱角色標記，例如「(男童音)」「（女聲）」「(合唱)」：不是唱出來的詞
+const ROLE_TAG = /^(?:男|女|童|合|和|獨|領|伴|旁|口)[^()（）]{0,5}(?:音|聲|唱|白)$/;
+// 括號裡寫的是樂器、編曲說明（例如「(古箏餘音收束，笛音淡出)」），也不是唱出來的詞；像「(我愛你)」這種和聲歌詞會保留
+const DIRECTION = /笛|箏|鼓|琴|弦|吉他|貝斯|伴奏|間奏|前奏|尾奏|淡出|淡入|漸強|漸弱|漸進|收束|起音|餘音|音效|節奏|鋪墊|instrumental|interlude|fade/i;
+const isTag = (x) => ROLE_TAG.test(x) || DIRECTION.test(x);
+function stripRoleTags(text) {
+  let t = text, prev;
+  do {
+    prev = t;
+    t = t.replace(/^\s*[(（]([^()（）]{1,40})[)）]\s*/, (m, x) => (isTag(x.trim()) ? '' : m));
+    t = t.replace(/\s*[(（]([^()（）]{1,40})[)）]\s*$/, (m, x) => (isTag(x.trim()) ? '' : m));
+  } while (t !== prev);
+  return t.trim();
+}
+
 // 同一行裡字與字之間突然空了十幾秒（Suno 對時出錯）時，把那一行縮回合理範圍
 function repairGap(line, S) {
   const out = { ...line };
@@ -98,12 +121,17 @@ function repairGap(line, S) {
 function normalize(payload, S) {
   const lines = [];
   let pending = false;
-  for (const line of rawLines(payload)) {
+  const raw = rawLines(payload);
+  for (let li = 0; li < raw.length; li++) {
+    const line = raw[li];
     const c = stripTags(rawText(line));
     if (!c.text) { if (c.tagOnly) pending = true; continue; }
     const lineStart = finite(line?.start_s), lineEnd = finite(line?.end_s);
     const section = clean(line?.section || '');
-    const instr = isInstruction(c.text, section, lineStart, lineEnd);
+    const nextStart = li + 1 < raw.length ? finite(raw[li + 1]?.start_s) : null;
+    const instr = isInstruction(c.text, section, lineStart, lineEnd) || isStageDirection(c.text, lineStart, lineEnd, nextStart, Array.isArray(line?.words) ? line.words.length : 0);
+    if (!instr) c.text = stripRoleTags(c.text);
+    if (!instr && !c.text) continue;
     const firstAfterMeta = (pending || c.removed > 0) && !instr;
     if (instr) { if (pending || c.removed > 0) pending = true; continue; }
     pending = false;
