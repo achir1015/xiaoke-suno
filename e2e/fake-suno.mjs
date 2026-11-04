@@ -68,7 +68,7 @@ export async function fakeSuno() {
     const json = (o, code = 200) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const html = (s) => { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(s); };
     if (u.pathname === '/') return html(page('<h1>假的 Suno 首頁</h1><a href="/workspace">工作區</a>'));
-    if (u.pathname === '/login') { res.writeHead(302, { 'Set-Cookie': 'fake_login=1; Path=/', Location: '/' }); return res.end(); }
+    if (u.pathname === '/login') { res.writeHead(302, { 'Set-Cookie': 'fake_login=1; Path=/; Max-Age=2592000', Location: '/' }); return res.end(); }
     // 工作區：網頁自己呼叫 API（測試被動收集）並列出 /song/ 連結（測試抓取這一頁）
     if (u.pathname === '/workspace') {
       return html(page(`<h1>我的工作區</h1><div id="list"></div>

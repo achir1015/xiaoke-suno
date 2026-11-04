@@ -47,7 +47,7 @@ const relSrv = http.createServer((req, res) => { res.writeHead(200, { 'Content-T
 const relUrl = `http://127.0.0.1:${await listen(relSrv)}/latest`;
 
 const opts = process.env.XK_EXE ? { executablePath: process.env.XK_EXE, args: ['--profile=e2e', '--hidden'] } : { executablePath: require('electron'), args: ['.', '--profile=e2e', '--hidden'] };
-opts.env = { ...process.env, XIAOKE_SUNO_HOME: suno.base + '/', XIAOKE_SUNO_API: suno.base, XIAOKE_SUNO_PARTITION: 'persist:suno-e2e', XIAOKE_SUNO_DIR: DL, XIAOKE_OPENAI_BASE: aiBase, XIAOKE_UPDATE_API: relUrl };
+opts.env = { ...process.env, XIAOKE_SUNO_HOME: suno.base + '/', XIAOKE_SUNO_API: suno.base, XIAOKE_SUNO_PARTITION: 'persist:suno-e2e', XIAOKE_SUNO_DIR: DL, XIAOKE_OPENAI_BASE: aiBase, XIAOKE_UPDATE_API: relUrl, XIAOKE_SUNO_LOGIN_URL: suno.base + '/login', XIAOKE_COOKIE_MATCH: '^127\.0\.0\.1$', XIAOKE_LOGIN_COOKIE: 'fake_login', XIAOKE_CHROME_ARGS: '--window-position=-4000,0 --window-size=800,600' };
 const app = await electron.launch(opts);
 // Suno 網頁（WebContentsView）也會被當成一個視窗，要挑 app:// 的那個
 let win = null;
@@ -98,9 +98,18 @@ try {
   check('Suno 網頁顯示在畫面上', v && v.visible && v.b.width > 400 && v.b.height > 200, JSON.stringify(v));
   await waitFor(() => document.querySelector('#sunoPill')?.textContent.includes('尚未登入'));
   check('未登入時顯示「尚未登入 Suno」', true);
-  await win.evaluate((u) => window.xk.suno.nav('url', u), suno.base + '/login');
-  await waitFor(() => document.querySelector('#sunoPill')?.textContent.includes('xiaoke_tester'), null, 15000);
-  check('登入後顯示 Suno 使用者名稱', true);
+  // 用 Chrome 登入：真的開 Chrome（螢幕外）→ 按「我登入好了」→ 登入狀態帶進內建網頁
+  check('沒登入時顯示「用 Chrome 登入」', !(await win.evaluate(() => document.querySelector('#snChrome').hidden)));
+  await click('#snChrome');
+  await waitFor(() => document.querySelector('#chDone'));
+  check('打開 Chrome 登入說明', (await text('.chrome-login')).includes('Chrome'));
+  await sleep(5000);
+  await click('#chDone');
+  await waitFor(() => document.querySelector('#sunoPill')?.textContent.includes('xiaoke_tester'), null, 30000);
+  check('用 Chrome 登入後，App 顯示 Suno 使用者名稱', true);
+  await waitFor(() => !document.querySelector('.chrome-login'), null, 15000);
+  check('登入完成自動關閉說明', true);
+  check('登入後隱藏「用 Chrome 登入」', await win.evaluate(() => document.querySelector('#snChrome').hidden));
   // 開設定時 Suno 網頁要藏起來
   await click('#btnSettings');
   await sleep(200);

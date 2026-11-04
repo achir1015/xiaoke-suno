@@ -1,0 +1,25 @@
+// 實測「用 Chrome 登入」：真的開 Chrome（放在螢幕外）、請它正常關閉、再用無畫面 Chrome 讀出 cookie
+import { createRequire } from 'module';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { fakeSuno } from './fake-suno.mjs';
+const require = createRequire(import.meta.url);
+const { ChromeLogin, toElectronCookie } = require('../src/main/chrome-login.js');
+const suno = await fakeSuno();
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'xks-chrome-'));
+const cl = new ChromeLogin(dir);
+console.log('瀏覽器：', cl.browser && cl.browser.name);
+const t0 = Date.now();
+const closed = cl.open(suno.base + '/login', ['--window-position=-4000,0', '--window-size=800,600']);
+await new Promise((r) => setTimeout(r, 5000));
+cl.close();
+await closed;
+console.log('Chrome 已關閉，花了', ((Date.now() - t0) / 1000).toFixed(1), '秒');
+const list = await cl.cookies(/127\.0\.0\.1/);
+console.log('讀到 cookie：', list.map((c) => `${c.name}=${c.value}`).join(', '));
+console.log('轉成 Electron 格式：', JSON.stringify(list.map(toElectronCookie)));
+const ok = list.some((c) => c.name === 'fake_login' && c.value === '1');
+console.log(ok ? '✔ 正常關閉後 cookie 有寫入並讀得到' : '✘ 沒讀到登入 cookie');
+suno.close();
+setTimeout(() => { fs.rmSync(dir, { recursive: true, force: true }); process.exit(ok ? 0 : 1); }, 3500);

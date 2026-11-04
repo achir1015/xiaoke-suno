@@ -7,6 +7,7 @@ const { Updater } = require('./updater');
 const { Suno } = require('./suno');
 const { Library, Downloader, FORMATS } = require('./downloader');
 const { Cloud, encodePairing, decodePairing } = require('./cloud');
+const { ChromeLogin, toElectronCookie } = require('./chrome-login');
 const srt = require('./srt');
 
 const APP_TITLE = '小柯機器人SUNO工具';
@@ -163,6 +164,7 @@ function createWindow() {
 
 function shutdown() {
   try { downloader && downloader.cancelAll(); } catch {}
+  try { chromeLogin.close(); } catch {}
   try { suno && suno.destroy(); } catch {}
   try { lib && lib.save(true); } catch {}
   for (const w of BrowserWindow.getAllWindows()) if (w !== win) try { w.destroy(); } catch {}
@@ -309,6 +311,27 @@ handle('suno:logout', async () => {
   suno.nav('home');
   return true;
 });
+
+// 用 Chrome 登入（Google 帳號不能在內建網頁登入時用）
+const chromeLogin = new ChromeLogin(path.join(app.getPath('userData'), 'chrome-login'));
+handle('suno:chromeInfo', () => { const b = chromeLogin.browser; return { name: b ? b.name : '', open: !!chromeLogin.child }; });
+handle('suno:chromeLogin', async () => {
+  // 測試時可用環境變數改登入網址、cookie 網域與 Chrome 參數（例如放到螢幕外）
+  const name = await chromeLogin.open(process.env.XIAOKE_SUNO_LOGIN_URL || 'https://suno.com/me', (process.env.XIAOKE_CHROME_ARGS || '').split(' ').filter(Boolean));
+  const list = await chromeLogin.cookies(process.env.XIAOKE_COOKIE_MATCH ? new RegExp(process.env.XIAOKE_COOKIE_MATCH) : undefined);
+  if (!list.some((c) => /^__client/.test(c.name) || c.name === '__session' || c.name === process.env.XIAOKE_LOGIN_COOKIE)) return { ok: false, browser: name, error: `在 ${name} 裡還沒有登入 Suno，請再試一次，登入完成看到自己的歌以後再關掉視窗` };
+  let n = 0;
+  for (const c of list) { try { await suno.ses.cookies.set(toElectronCookie(c)); n++; } catch {} }
+  await suno.ses.cookies.flushStore().catch(() => {});
+  suno.lastToken = '';
+  suno.nav('url', process.env.XIAOKE_SUNO_HOME || 'https://suno.com/me');
+  // 等內建網頁用新的 cookie 登入完成
+  let st = { loggedIn: false };
+  for (let i = 0; i < 40 && !st.loggedIn; i++) { await new Promise((r) => setTimeout(r, 500)); st = await suno.state().catch(() => st); if (st.loggedIn && !st.checking) break; }
+  send('suno:state', st);
+  return { ok: !!st.loggedIn, browser: name, count: n, user: st.user, error: st.loggedIn ? '' : '登入資料已帶入，但 Suno 還沒有認得，請按 ⟳ 重新整理看看' };
+});
+handle('suno:chromeDone', () => chromeLogin.close());
 
 handle('lib:list', () => lib.list());
 handle('lib:refresh', async (opt = {}) => {
