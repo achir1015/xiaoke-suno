@@ -43,9 +43,9 @@ function topbar() {
     h('span', { class: 'sp' }),
     h('button', { class: 'pill', id: 'sunoPill', title: 'Suno 登入狀態', onclick: () => go('suno') }, '🔑 尚未登入 Suno'),
     h('button', { class: 'pill', id: 'cloudPill', title: '雲端儲存', onclick: () => openSettings('cloud') }, '☁️ 未連線'),
-    h('button', { class: 'tb-btn', id: 'btnGuide', onclick: () => openGuide() }, '📖 使用說明'),
-    h('button', { class: 'tb-btn', id: 'btnUpdate', onclick: () => openUpdate() }, '🔄 檢查更新'),
-    h('button', { class: 'tb-btn', id: 'btnSettings', onclick: () => openSettings() }, '⚙️ 設定'));
+    h('button', { class: 'tb-btn', id: 'btnGuide', title: '使用說明', onclick: () => openGuide() }, h('i', {}, '📖'), h('span', { class: 'tl' }, ' 使用說明')),
+    h('button', { class: 'tb-btn', id: 'btnUpdate', title: '檢查更新', onclick: () => openUpdate() }, h('i', {}, '🔄'), h('span', { class: 'tl' }, ' 檢查更新')),
+    h('button', { class: 'tb-btn', id: 'btnSettings', title: '設定', onclick: () => openSettings() }, h('i', {}, '⚙️'), h('span', { class: 'tl' }, ' 設定')));
 }
 
 function side() {
@@ -120,6 +120,15 @@ async function init() {
   xk.onToast((t) => toast(t.text, { type: t.type || 'info' }));
   xk.onZoom((z) => { S.zoom = z; syncSunoView(); });
   new MutationObserver(() => syncSunoView()).observe(document.body, { childList: true });
+  // Android 返回鍵：先關對話框、小柯助手，再回到歌曲庫；都沒有才交給系統（按兩次離開）
+  window.__xkBack = () => {
+    const back = [...document.querySelectorAll('.modal-back')].at(-1);
+    if (back) { back.querySelector('.modal-head .icon-btn')?.click(); return true; }
+    if (document.querySelector('.pop')) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); return true; }
+    if ($('#agent').classList.contains('open')) { toggleAgent(false); return true; }
+    if (S.view !== 'library') { go('library'); return true; }
+    return false;
+  };
   addEventListener('resize', () => syncSunoView());
   // 離開時停止朗讀
   addEventListener('pagehide', () => voice.stop());

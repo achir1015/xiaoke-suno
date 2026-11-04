@@ -2,3 +2,7 @@ node_modules/
 dist/
 e2e/out/
 *.log
+mobile/www/
+android/build/
+android/*.jks
+android/local.properties

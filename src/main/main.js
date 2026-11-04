@@ -339,6 +339,16 @@ handle('suno:chromeLogin', async () => {
   return { ok: !!st.loggedIn, browser: name, count: n, user: st.user, error: st.loggedIn ? '' : '登入資料已帶入，但 Suno 還沒有認得，請按 ⟳ 重新整理看看' };
 });
 handle('suno:chromeDone', () => chromeLogin.close());
+// 帶到手機：QR Code 內容是 Suno 的長效登入 cookie（auth.suno.com 的 __client，約一年有效）＋雲端設定碼
+// 手機版用它向 Suno 的登入服務換權杖；這等於把登入狀態交給手機，只在使用者按下時產生
+handle('suno:pairCode', async () => {
+  const all = await suno.ses.cookies.get({}).catch(() => []);
+  const pick = all.filter((c) => (/(^|\.)auth\.suno\.com$/.test(c.domain) && /^__client/.test(c.name)) || (/(^|\.)suno\.com$/.test(c.domain) && /^__client_uat/.test(c.name)));
+  if (!pick.some((c) => c.name === '__client')) throw new Error('這台電腦還沒有 Suno 的長效登入資料，請先按「🔑 用 Chrome 登入」');
+  const c = pick.map((x) => [x.name, x.value, x.domain, Math.round(x.expirationDate || 0)]);
+  const k = cloudReady() ? encodePairing(settings.cloud.url, decrypt(settings.cloud.tokenEnc)) : '';
+  return 'XKSP1:' + JSON.stringify({ c, k });
+});
 
 handle('lib:list', () => lib.list());
 handle('lib:refresh', async (opt = {}) => {

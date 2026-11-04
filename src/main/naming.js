@@ -1,7 +1,5 @@
 'use strict';
 // 檔名：跟 Suno 網站「下載」一樣用歌名當檔名；同名的歌（Suno 一次產生兩首）依設定加上序號或 ID
-const path = require('path');
-const fs = require('fs');
 
 function sanitize(value, fallback = 'Untitled') {
   let name = String(value || '').replace(/[\r\n\t]+/g, ' ').replace(/[​-‍⁠﻿]/g, '').replace(/\s+/g, ' ').trim()
@@ -34,6 +32,7 @@ function pickBase(clip, mode, taken) {
 function existingBases(dir, exts) {
   const set = new Set();
   try {
+    const path = require('path'), fs = require('fs');
     for (const f of fs.readdirSync(dir)) {
       const ext = path.extname(f).slice(1).toLowerCase();
       if (exts.includes(ext)) set.add(f.slice(0, -(ext.length + 1)).toLowerCase());
@@ -42,4 +41,7 @@ function existingBases(dir, exts) {
   return set;
 }
 
-module.exports = { sanitize, pickBase, existingBases };
+// 桌面版用 require；手機版、線上版的網頁直接載入，放在 window.XkNaming（existingBases 只有桌面版用）
+const namingApi = { sanitize, pickBase, existingBases };
+if (typeof module !== 'undefined' && module.exports) module.exports = namingApi;
+else globalThis.XkNaming = namingApi;

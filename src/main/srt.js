@@ -262,4 +262,7 @@ function parseSrt(text) {
   return out;
 }
 
-module.exports = { convert, parseSrt, srtTime, lrcTime, START_OFFSETS, DEFAULTS, clean };
+// 桌面版（Node）用 require；手機版、線上版的網頁直接載入，放在 window.XkSrt
+const srtApi = { convert, parseSrt, srtTime, lrcTime, START_OFFSETS, DEFAULTS, clean };
+if (typeof module !== 'undefined' && module.exports) module.exports = srtApi;
+else globalThis.XkSrt = srtApi;

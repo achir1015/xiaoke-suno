@@ -191,6 +191,16 @@ button.mk.on { opacity: 1; box-shadow: 0 0 0 2px color-mix(in srgb, var(--mc) 50
 .kl:hover { color: rgba(255, 255, 255, .8); }
 .kl.on { color: #fff; font-size: 27px; font-weight: 800; text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 80%, transparent); }
 
+/* ---------- 帶到手機 QR ---------- */
+.pair { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.pair ol { text-align: left; line-height: 1.8; }
+.qrbox { width: min(360px, 80vw); background: #fff; padding: 8px; border-radius: 12px; transition: filter .2s; }
+.qrbox svg { width: 100%; height: auto; display: block; }
+.qrbox.blur { filter: blur(14px); }
+.scanbox { position: relative; width: min(340px, 86vw); aspect-ratio: 1; margin: 0 auto; border-radius: 14px; overflow: hidden; background: #000; }
+.scanbox video { width: 100%; height: 100%; object-fit: cover; }
+.scanbox i { position: absolute; inset: 14%; border: 3px solid var(--accent); border-radius: 12px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); }
+
 /* ---------- Suno 網頁 ---------- */
 .suno-bar { display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--bg2); flex-wrap: wrap; }
 .suno-bar .url { color: var(--fg3); font-size: 12.5px; margin-left: 8px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -338,4 +348,88 @@ pre.notes { background: var(--bg); border: 1px solid var(--line); border-radius:
   .song .da { display: none; }
   .tools input[type=search] { width: 200px; }
   #agent.open { width: 330px; }
+}
+
+/* ---------- 手機（Android／iPhone 直立、窄螢幕） ---------- */
+@media (max-width: 820px) {
+  body { font-size: 14.5px; }
+  #topbar { height: 50px; padding: 0 8px; gap: 4px; padding-top: env(safe-area-inset-top); height: calc(50px + env(safe-area-inset-top)); }
+  #topbar .logo { width: 30px; height: 30px; }
+  .brand small, .tb-btn .tl { display: none; }
+  .brand b { font-size: 14px; }
+  .tb-btn { padding: 6px 7px; font-size: 17px; }
+  .pill { max-width: 110px; padding: 3px 8px; font-size: 12px; }
+  #shell { flex-direction: column; }
+  #side { order: 2; width: auto; flex-direction: row; padding: 4px 6px calc(4px + env(safe-area-inset-bottom)); border-right: 0; border-top: 1px solid var(--line); overflow: visible; gap: 2px; }
+  #side .nav { flex-direction: row; flex: 3; gap: 2px; }
+  #side .side-sec, #side > .sp { display: none; }
+  .nav-item { flex: 1; flex-direction: column; gap: 0; padding: 4px 2px; font-size: 11.5px; text-align: center; position: relative; }
+  .nav-item.on { box-shadow: inset 0 3px 0 var(--accent); }
+  .nav-item .ni { font-size: 20px; width: auto; }
+  .nav-item .badge { position: absolute; top: 2px; right: 12%; min-width: 0; }
+  .agent-btn { flex: 1; flex-direction: column; justify-content: center; gap: 0; padding: 2px; border-radius: 10px; }
+  .agent-btn img { width: 26px; height: 26px; }
+  .agent-btn small { display: none; }
+  .agent-btn b { font-size: 11.5px; font-weight: 500; }
+  #main { order: 1; min-height: 0; }
+  #agent.open { position: fixed; inset: 0; width: auto; z-index: 40; padding-top: env(safe-area-inset-top); }
+  .lib-head { padding: 8px 8px 6px; gap: 6px; }
+  .tools { gap: 6px; }
+  .tools input[type=search] { width: 100%; order: -2; }
+  .tools .seg { overflow-x: auto; flex-wrap: nowrap; max-width: 100%; }
+  .tools .seg button { padding: 5px 9px; }
+  .tools > .sp { display: none; }
+  .tools .btn { flex: 1; justify-content: center; padding: 7px 8px; font-size: 13px; }
+  .dlbar { padding: 6px; gap: 6px; }
+  .dlbar .all { min-width: 0; }
+  .dlbar > .sp { display: none; }
+  .fmts { order: 5; width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  #offset { order: 6; flex: 1; }
+  .quota { order: 7; }
+  #btnOpenDir { display: none; }
+  #btnDownload { order: 8; width: 100%; justify-content: center; }
+  .lib-list { padding: 4px 4px 20px; }
+  .song { grid-template-columns: 22px 48px minmax(0, 1fr) auto; grid-template-areas: 'c v i a' 'c v s a'; row-gap: 0; padding: 6px 4px; }
+  .song > input { grid-area: c; }
+  .song .cover { grid-area: v; width: 48px; height: 48px; }
+  .song .info { grid-area: i; }
+  .song .st { grid-area: s; }
+  .song .acts { grid-area: a; flex-direction: column; }
+  .song .du, .song .da { display: none; }
+  .song .acts .icon-btn { width: 30px; height: 26px; }
+  .player { gap: 8px; padding: 6px 8px; }
+  .k-cover { width: 44px; height: 44px; }
+  .k-lines .kc { font-size: 16px; }
+  .k-btns .icon-btn { width: 34px; height: 34px; }
+  .suno-bar { padding: 4px 6px; gap: 2px; }
+  .suno-bar .btn.ghost.small, .suno-bar .url { display: none; }
+  .suno-bar .btn.small { padding: 4px 8px; font-size: 12.5px; }
+  .suno-tip { font-size: 12px; padding: 6px 10px; }
+  #v-queue { padding: 10px 8px; }
+  .q-head h2 { font-size: 16px; width: 100%; }
+  .modal-back { padding: 0; align-items: end; }
+  .modal, .modal.wide { width: 100%; max-height: 92vh; border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .modal-body { padding: 12px 14px; }
+  .modal, .modal-body { min-width: 0; }
+  .modal-foot { flex-wrap: wrap; padding: 10px 14px 14px; }
+  .modal-foot .btn { flex: 1 1 auto; justify-content: center; white-space: normal; text-align: center; }
+  .quota-card { flex-direction: column; gap: 2px; }
+  .k-top .k-src { display: none; }
+  .k-top b { font-size: 13.5px; }
+  .set { flex-direction: column; gap: 10px; min-height: 0; }
+  .set-nav { flex-direction: row; width: auto; overflow-x: auto; }
+  .set-nav button { white-space: nowrap; }
+  .guide { flex-direction: column; }
+  .g-list { display: none; }
+  .g-text p { font-size: 14.5px; }
+  .d-top { flex-direction: column; align-items: center; text-align: center; }
+  .d-cover { width: 140px; height: 140px; }
+  .d-cols { grid-template-columns: 1fr; }
+  pre.lyrics, .srt-list { height: 220px; }
+  .k-big-body { flex-direction: column; padding: 14px; }
+  .k-big-side { width: auto; display: flex; gap: 10px; align-items: center; }
+  .k-big-side img { width: 90px; height: 90px; }
+  .k-big-list { max-height: 55vh; padding: 20vh 0; }
+  .spot-tip { width: calc(100vw - 24px); left: 12px !important; }
+  #toasts { top: calc(6px + env(safe-area-inset-top)); width: calc(100vw - 20px); }
 }
