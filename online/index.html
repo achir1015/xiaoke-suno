@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小柯SUNO 線上版</title>
+<meta name="description" content="不用安裝：在 suno.com 點一下書籤，批量下載 MP3 與 SRT 字幕，檔名同 Suno 歌名。">
+<link rel="icon" href="icon.png">
+<style>
+  :root { --bg: #0d0d12; --card: #1d1d28; --line: #3a3a4c; --fg: #ececf3; --dim: #a9a9bb; --acc: #fb923c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: radial-gradient(1200px 600px at 30% -10%, #4a1d3a, var(--bg) 60%); color: var(--fg); font: 17px/1.7 -apple-system, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif; min-height: 100vh; }
+  main { max-width: 860px; margin: 0 auto; padding: 28px 18px 60px; }
+  .hero { display: flex; gap: 18px; align-items: center; }
+  .hero img { width: 88px; height: 88px; border-radius: 20px; }
+  h1 { margin: 0; font-size: 30px; }
+  h2 { color: var(--acc); margin: 32px 0 10px; font-size: 21px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; }
+  .bm { display: inline-block; margin: 10px 0; padding: 14px 26px; border-radius: 14px; background: linear-gradient(135deg, #f97316, #db2777); color: #fff; font-size: 22px; font-weight: 800; text-decoration: none; cursor: grab; box-shadow: 0 6px 18px rgba(236,72,153,.35); }
+  ol { padding-left: 1.3em; } li { margin: 6px 0; }
+  .dim { color: var(--dim); font-size: 15px; }
+  code { background: #0d0d12; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 13px; word-break: break-all; }
+  button { font: inherit; background: #262633; color: var(--fg); border: 1px solid var(--line); border-radius: 9px; padding: 6px 14px; cursor: pointer; }
+  .phone { display: none; background: #3b1d2e; border-radius: 12px; padding: 12px 16px; margin-top: 14px; }
+  html.mobile .phone { display: block; }
+  a { color: var(--acc); }
+  footer { margin-top: 40px; color: var(--dim); font-size: 14px; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero"><img src="icon.png" alt=""><div><h1>小柯SUNO 線上版</h1><div class="dim">不用安裝：在 suno.com 點一下書籤，就能批量下載 MP3 和 SRT 字幕</div></div></div>
+  <div class="phone">📱 手機、平板上建議安裝 App（<a href="../">回首頁下載</a>），書籤小工具最適合電腦的 Chrome、Edge。</div>
+
+  <h2>① 把這個按鈕拖到書籤列</h2>
+  <div class="card">
+    <a class="bm" id="bm" href="#" title="拖到書籤列">🎵 小柯SUNO</a>
+    <div class="dim">用滑鼠按住上面的橘色按鈕，拖到瀏覽器上方的書籤列放開（沒看到書籤列：按 Ctrl＋Shift＋B）。</div>
+    <div class="dim" style="margin-top:8px">拖不過去的話：<button id="copy">📋 複製書籤程式碼</button>，在書籤列按右鍵 →「新增網頁」，名稱寫「小柯SUNO」，網址貼上。</div>
+  </div>
+
+  <h2>② 到 Suno 點一下書籤</h2>
+  <div class="card">
+    <ol>
+      <li>打開 <a href="https://suno.com/me" target="_blank" rel="noopener">suno.com</a>，用平常的方式登入（Google 帳號也可以，這就是您自己的瀏覽器）。</li>
+      <li>點書籤列的「🎵 小柯SUNO」，右上角會出現小柯的下載面板。</li>
+      <li>按「讀取我的全部歌曲」；只要某個工作區或播放清單，就打開那一頁按「抓取這一頁」。</li>
+      <li>勾選歌曲、選格式（MP3、SRT、LRC、歌詞、封面），按「下載所選」。檔名和 Suno 上的歌名一樣，存到瀏覽器的「下載」資料夾。</li>
+    </ol>
+  </div>
+
+  <h2>第一次使用前</h2>
+  <div class="card">
+    <ol>
+      <li>Chrome／Edge 設定 → 下載 → 關閉「每次下載前詢問儲存位置」，不然每個檔案都會跳出另存新檔。</li>
+      <li>第一次批量下載時，網址列旁邊會問「要允許下載多個檔案嗎」，請按「允許」。</li>
+      <li>Suno 現在下載 MP3／WAV 要「解鎖」：每首用 1 次方案的下載次數，解鎖過的不再扣。面板會先告訴您會用掉幾次、還剩幾次，也可以只下載已解鎖的歌；SRT 字幕不用解鎖。</li>
+    </ol>
+    <p class="dim">安全：書籤程式只在 suno.com 裡執行，用的是您瀏覽器原本的 Suno 登入；帳號密碼不會經過小柯，也不會傳到其他網站。程式公開在 <a href="https://github.com/achir1015/xiaoke-suno/blob/main/online/panel.js">GitHub</a>。</p>
+    <p class="dim">想要邊聽邊看字幕、標記、AI 助手、雲端同步，請用 <a href="../">電腦版或手機 App</a>。</p>
+  </div>
+  <footer>小柯機器人SUNO工具・系統開發：吳玉柱 先生 與 Claude AI Opus 5.5・非官方工具，與 Suno 公司無關</footer>
+</main>
+<script>
+  var src = location.href.replace(/[^/]*(\?.*)?(#.*)?$/, '') + 'panel.js';
+  var code = "javascript:(function(){if(!/suno\\.com$/.test(location.hostname)){alert('請先打開 suno.com 再點小柯SUNO');return}var s=document.createElement('script');s.src='" + src + "?t='+Date.now();document.body.appendChild(s)})()";
+  document.getElementById('bm').href = code;
+  document.getElementById('bm').onclick = function (e) { e.preventDefault(); alert('請把這個按鈕「拖」到書籤列，再到 suno.com 點書籤。'); };
+  document.getElementById('copy').onclick = function () { navigator.clipboard.writeText(code).then(function () { document.getElementById('copy').textContent = '✅ 已複製'; }); };
+  if (/Android|iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)) document.documentElement.classList.add('mobile');
+</script>
+</body>
+</html>

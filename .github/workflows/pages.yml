@@ -1,9 +1,9 @@
-name: 首頁與 iPhone／iPad 安裝頁（GitHub Pages）
+name: 首頁、線上版與 iPhone／iPad 安裝頁（GitHub Pages）
 
 on:
   push:
     branches: [main]
-    paths: ['docs/**', '.github/workflows/pages.yml']
+    paths: ['docs/**', 'online/**', 'src/main/srt.js', 'src/main/naming.js', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -23,11 +23,14 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      # 網站：docs/（首頁、iPhone／iPad 安裝頁）
+      # 網站：docs/（首頁、iPhone／iPad 安裝頁）＋ online/（線上版書籤小工具，SRT 與檔名用桌面版同一份程式）
       - name: 組合網站
         run: |
-          mkdir -p _site
+          mkdir -p _site/online
           cp -r docs/. _site/
+          cp -r online/. _site/online/
+          cp src/main/srt.js src/main/naming.js _site/online/
+          cp docs/ios/icon-180.png _site/online/icon.png
           touch _site/.nojekyll
           du -sh _site
       - uses: actions/upload-pages-artifact@v3

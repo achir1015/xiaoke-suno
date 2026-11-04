@@ -65,6 +65,8 @@ export async function fakeSuno() {
     const songs = makeSongs(base).map((s) => ({ ...s, is_download_unlocked: state.unlocked.has(s.id) }));
     const u = new URL(req.url, base);
     state.calls.push(`${req.method} ${u.pathname}`);
+    // 網站版路徑 suno.com/a/api/...：歌曲清單、歌曲資料、對時歌詞和 studio-api 一樣（方案資訊與官方下載只在 /a/api）
+    if (/^\/a\/api\/(feed|clips|clip|gen)\//.test(u.pathname) && !/\/download\//.test(u.pathname)) u.pathname = u.pathname.slice(2);
     const json = (o, code = 200) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const html = (s) => { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(s); };
     if (u.pathname === '/') return html(page('<h1>假的 Suno 首頁</h1><a href="/workspace">工作區</a>'));
