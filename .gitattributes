@@ -6,3 +6,5 @@ ios/** text eol=lf
 *.jks binary
 *.mp3 binary
 *.jpg binary
+*.plist text eol=lf
+*.cjs text eol=lf
