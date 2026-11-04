@@ -159,6 +159,13 @@ function createWindow() {
       item.once('done', (e, state) => send('app:toast', state === 'completed' ? { text: `已存到下載資料夾：${path.basename(file)}` } : { text: `下載失敗：${item.getFilename()}`, type: 'error' }));
     },
   });
+  // 網頁沒有 Clerk 物件時，用歌曲庫裡最常出現的 Suno 帳號名稱當作使用者名稱
+  suno.userHint = () => {
+    const n = {};
+    for (const c of Object.values(lib.data.clips)) if (c.handle) n[c.handle] = (n[c.handle] || 0) + 1;
+    const top = Object.entries(n).sort((a, b) => b[1] - a[1])[0];
+    return top ? { username: top[0] } : { username: '' };
+  };
   suno.create();
 }
 
@@ -232,7 +239,7 @@ function initData() {
   lib = new Library(path.join(app.getPath('userData'), 'library.json'));
   downloader = new Downloader({
     lib,
-    suno: { aligned: (id) => suno.aligned(id), wavUrl: (id, s) => suno.wavUrl(id, s) },
+    suno: { aligned: (id) => suno.aligned(id), downloadUrl: (id, f, s) => suno.downloadUrl(id, f, s) },
     getSettings: () => settings,
     fetcher: (url, opt) => suno.ses.fetch(url, opt),
     onUpdate: (snap) => { send('dl:update', snap); maybeNotify(snap); },
@@ -367,7 +374,12 @@ handle('lib:play', async (id, offset) => {
   const c = lib.data.clips[id];
   if (!c) throw new Error('找不到這首歌');
   const f = lib.fileState(id) || {};
-  const out = { id, title: c.title, image: c.image || c.thumb, audio: f.mp3 ? `app://media/${id}.mp3` : c.audio, localAudio: !!f.mp3, lines: [], lyricSrc: '', srtFile: '' };
+  // 沒有本機 MP3：已解鎖的用官方下載網址試聽（不扣次數），沒解鎖的用 Suno 公開影片的音軌
+  const out = { id, title: c.title, image: c.image || c.thumb, audio: f.mp3 ? `app://media/${id}.mp3` : '', localAudio: !!f.mp3, lines: [], lyricSrc: '', srtFile: '' };
+  if (!out.audio && c.unlocked) { try { out.audio = await suno.downloadUrl(id, 'mp3'); out.audioSrc = 'unlocked'; } catch {} }
+  if (!out.audio && c.audio) out.audio = c.audio;
+  if (!out.audio && c.video) { out.audio = c.video; out.audioSrc = 'video'; }
+  if (!out.audio) throw new Error('Suno 沒有提供這首歌的試聽音檔');
   if (f.srt && offset == null) {
     try { out.lines = srt.parseSrt(fs.readFileSync(f.srt, 'utf8')); out.lyricSrc = 'file'; out.srtFile = f.srt; } catch {}
   }
@@ -382,7 +394,9 @@ handle('lib:play', async (id, offset) => {
   return out;
 });
 
-handle('dl:add',(ids, formats) => downloader.add(ids || [], formats || settings.download.formats));
+handle('dl:add', (ids, formats, opts) => downloader.add(ids || [], formats || settings.download.formats, opts || {}));
+// 下載次數（Suno 官方下載：還沒解鎖的歌每首用 1 次）
+handle('suno:quota', () => suno.quota());
 handle('dl:state', () => downloader.snapshot());
 handle('dl:pause', (v) => downloader.pause(v));
 handle('dl:cancel', () => downloader.cancelAll());

@@ -5,9 +5,14 @@ const { WebContentsView, session } = require('electron');
 
 const HOME = process.env.XIAOKE_SUNO_HOME || 'https://suno.com/';
 const API = (process.env.XIAOKE_SUNO_API || 'https://studio-api-prod.suno.com').replace(/\/$/, '');
+// 網站自己用的 API（官方下載、方案資訊）：https://suno.com/a/api/...
+const SITE_API = (process.env.XIAOKE_SUNO_SITE_API || new URL(HOME).origin + '/a').replace(/\/$/, '');
 const PARTITION = process.env.XIAOKE_SUNO_PARTITION || 'persist:suno';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function jwtExp(t) {
+  try { return JSON.parse(Buffer.from(String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')).exp || 0; } catch { return 0; }
+}
 
 // 各種 API 回應裡的歌曲物件 → 統一格式
 function toClip(raw) {
@@ -17,8 +22,9 @@ function toClip(raw) {
   if (!('audio_url' in c) && !('metadata' in c)) return null;
   const md = c.metadata || {};
   const cdn = (u) => String(u || '').replace('cdn2.suno.ai', 'cdn1.suno.ai');
+  // 2026-11 起 Suno 的 audio_url 一律是 …/api/forbidden，MP3 要用官方下載（會用到下載次數）
   let audio = cdn(c.audio_url);
-  if (!audio || /audiopipe/.test(audio)) audio = `https://cdn1.suno.ai/${c.id}.mp3`;
+  if (!audio || /audiopipe|\/api\/forbidden/.test(audio)) audio = '';
   return {
     id: c.id,
     title: typeof c.title === 'string' && c.title.trim() ? c.title.trim() : 'Untitled',
@@ -39,6 +45,8 @@ function toClip(raw) {
     liked: !!c.is_liked,
     trashed: !!c.is_trashed,
     instrumental: md.make_instrumental === true || md.has_vocal === false,
+    video: cdn(c.video_url),
+    unlocked: c.is_download_unlocked === true,
   };
 }
 
@@ -159,6 +167,17 @@ class Suno {
   async run(js) { return this.wc.executeJavaScript(js, true); }
 
   // 登入狀態與使用者名稱
+  // Clerk 的 __session JWT：還沒過期就算登入中
+  async sessionToken() {
+    const ck = await this.ses.cookies.get({ name: '__session' }).catch(() => []);
+    const now = Date.now() / 1000;
+    for (const c of ck.filter((x) => /suno|127\.0\.0\.1|localhost/.test(x.domain))) {
+      const exp = jwtExp(c.value);
+      if (!exp || exp > now - 300) return c.value;
+    }
+    return '';
+  }
+
   async state() {
     const url = this.wc ? this.wc.getURL() : '';
     const base = { ok: true, url, canBack: !!this.wc && this.wc.navigationHistory.canGoBack(), canForward: !!this.wc && this.wc.navigationHistory.canGoForward() };
@@ -176,7 +195,12 @@ class Suno {
     })()`).catch(() => ({ ready: false }));
     if (r.token) { this.lastToken = r.token; this.user = r.user; }
     else if (r.ready) { this.lastToken = ''; this.user = null; }
-    return { ...base, loggedIn: !!r.token || (!r.ready && !!this.lastToken), checking: !r.ready, user: this.user };
+    if (r.ready) return { ...base, loggedIn: !!r.token, user: this.user };
+    // 網頁沒有 Clerk 物件（Suno 新版）：用 __session cookie 判斷
+    const tok = await this.sessionToken();
+    if (tok) this.lastToken = tok;
+    this.user = tok ? (this.userHint ? this.userHint() : { username: '' }) : null;
+    return { ...base, loggedIn: !!tok, user: this.user };
   }
 
   async token() {
@@ -184,15 +208,14 @@ class Suno {
       const t = await this.run('(async()=>{try{return (window.Clerk&&window.Clerk.session)?await window.Clerk.session.getToken():""}catch(e){return ""}})()').catch(() => '');
       if (t) { this.lastToken = t; return t; }
     }
-    // 網頁不在 Suno（例如正在登入頁）：用 Suno 的 __session cookie
-    const ck = await this.ses.cookies.get({ name: '__session' }).catch(() => []);
-    const t = (ck.find((c) => /suno/.test(c.domain)) || ck[0] || {}).value || this.lastToken;
+    // Suno 新版網頁沒有 window.Clerk，或網頁不在 Suno：用 __session cookie
+    const t = (await this.sessionToken()) || this.lastToken;
     if (!t) throw new Error('還沒有登入 Suno，請到「Suno 網頁」登入');
     return t;
   }
 
   // 呼叫 Suno API：優先在 Suno 網頁裡發出（跟網站自己發的一樣），網頁不在 Suno 時才由程式直接連
-  async api(method, path, body) {
+  async api(method, path, body, { base = API } = {}) {
     for (let attempt = 0; attempt < 4; attempt++) {
       const token = await this.token();
       let r;
@@ -203,14 +226,14 @@ class Suno {
             const h = { Authorization: 'Bearer ' + ${JSON.stringify(token)} };
             if (dev) h['device-id'] = dev;
             ${body ? "h['Content-Type'] = 'application/json';" : ''}
-            const res = await fetch(${JSON.stringify(API + path)}, { method: ${JSON.stringify(method)}, headers: h, body: ${body ? JSON.stringify(JSON.stringify(body)) : 'undefined'}, credentials: 'omit' });
+            const res = await fetch(${JSON.stringify(base + path)}, { method: ${JSON.stringify(method)}, headers: h, body: ${body ? JSON.stringify(JSON.stringify(body)) : 'undefined'}, credentials: 'omit' });
             const text = await res.text();
             return { status: res.status, text, retry: res.headers.get('retry-after') };
           } catch (e) { return { status: 0, text: String(e && e.message || e) }; }
         })()`);
       } else {
         try {
-          const res = await this.ses.fetch(API + path, { method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+          const res = await this.ses.fetch(base + path, { method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
           r = { status: res.status, text: await res.text(), retry: res.headers.get('retry-after') };
         } catch (e) { r = { status: 0, text: e.message }; }
       }
@@ -260,16 +283,25 @@ class Suno {
     try { return await this.api('GET', `/api/gen/${id}/aligned_lyrics/v2/`); } catch (e) { if (e.code === 404) return null; throw e; }
   }
 
-  // WAV：請 Suno 轉檔後等網址出來（需要 Suno 付費方案）
-  async wavUrl(id, signal) {
-    await this.api('POST', `/api/gen/${id}/convert_wav/`);
-    for (let i = 0; i < 60; i++) {
+  // 方案的下載次數：每期上限 − 已用 ＋ 加購剩下的
+  async quota() {
+    const b = await this.api('GET', '/api/billing/info/', null, { base: SITE_API });
+    const u = (b && b.download_usage) || {};
+    const limit = Number(u.current_period_downloads_limit) || 0, used = Number(u.current_period_downloads_used) || 0, extra = Number(u.additional_download_remaining) || 0;
+    return { plan: (b.plan && b.plan.name) || '', limit, used, extra, remaining: Math.max(0, limit - used) + extra, renews: b.renews_on || b.period_end || '' };
+  }
+
+  // 官方下載（和網站上「下載 → MP3／WAV」一樣）：還沒解鎖的歌會用掉 1 次下載次數，之後隨時可再下載
+  // 回傳有時效的簽章網址；Suno 準備檔案時會先回 status 不是 ready，要等一下再問
+  async downloadUrl(id, format = 'mp3', signal) {
+    for (let i = 0; i < 90; i++) {
       if (signal && signal.aborted) throw new Error('已取消');
-      const r = await this.api('GET', `/api/gen/${id}/wav_file/`);
-      if (r && r.wav_file_url) return r.wav_file_url;
-      await sleep(3000);
+      const r = await this.api('GET', `/api/download/clip/${id}?format=${format}`, null, { base: SITE_API });
+      if (r && r.download_url && (!r.status || r.status === 'ready')) return r.download_url;
+      if (r && (r.ok === false || r.status === 'error' || r.status === 'failed')) throw new Error(r.detail || r.message || 'Suno 無法提供這首歌的下載');
+      await sleep(Math.min(5000, 1500 + i * 300));
     }
-    throw new Error('WAV 轉檔逾時');
+    throw new Error('Suno 準備檔案逾時');
   }
 
   // 抓取目前網頁上的歌：自動往下捲，收集所有 /song/ 連結
@@ -298,4 +330,4 @@ class Suno {
   }
 }
 
-module.exports = { Suno, toClip, harvest, downloadable, HOME, API };
+module.exports = { Suno, toClip, harvest, downloadable, jwtExp, HOME, API, SITE_API };

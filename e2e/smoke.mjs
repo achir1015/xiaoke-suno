@@ -105,8 +105,8 @@ try {
   check('打開 Chrome 登入說明', (await text('.chrome-login')).includes('Chrome'));
   await sleep(5000);
   await click('#chDone');
-  await waitFor(() => document.querySelector('#sunoPill')?.textContent.includes('xiaoke_tester'), null, 30000);
-  check('用 Chrome 登入後，App 顯示 Suno 使用者名稱', true);
+  await waitFor(() => document.querySelector('#sunoPill')?.classList.contains('ok'), null, 30000);
+  check('用 Chrome 登入後，App 顯示已登入（Suno 新版網頁沒有 Clerk，看 __session）', true);
   await waitFor(() => !document.querySelector('.chrome-login'), null, 15000);
   check('登入完成自動關閉說明', true);
   check('登入後隱藏「用 Chrome 登入」', await win.evaluate(() => document.querySelector('#snChrome').hidden));
@@ -126,6 +126,11 @@ try {
   check('讀取全部歌曲：5 首（排除產生中的）', true);
   check('feed/v3 帶 trashed=False 過濾', suno.state.lastFeed && suno.state.lastFeed.filters.trashed === 'False');
   check('分頁讀到第 2 頁', suno.state.calls.filter((c) => c === 'POST /api/feed/v3').length === 2);
+  await waitFor(() => document.querySelector('#sunoPill')?.textContent.includes('xiaoke_tester'));
+  check('上方顯示 Suno 帳號名稱', true);
+  await waitFor(() => document.querySelector('#quota')?.textContent.includes('剩 20'));
+  check('顯示 Suno 下載次數（剩 20）', true);
+  check('已解鎖的歌有 🔓', (await count('#libList .tag.unl')) === 1);
   check('看不到 Suno 網頁（在歌曲庫時）', !(await sunoView()).visible);
 
   // 工作區：被動收集＋抓取這一頁
@@ -151,8 +156,22 @@ try {
   await waitFor(() => document.querySelectorAll('#fmts .chip.on').length === 5);
   check('格式按鈕：選了 5 種', true);
   await waitFor(() => document.querySelectorAll('#libList .song').length === 6);
+  // 沒解鎖的歌：選「只下載已解鎖的」→ 不呼叫官方下載、不扣次數，MP3 顯示原因
+  await win.evaluate((id) => document.querySelector(`.song[data-id="${id}"] .acts .icon-btn:nth-child(2)`).click(), suno.id(5));
+  await waitFor(() => document.querySelector('.unlock-box'));
+  check('下載沒解鎖的歌前先問要不要用下載次數', (await text('.unlock-box')).includes('1 首還沒在 Suno 解鎖') && (await text('.unlock-box')).includes('剩 20 次'));
+  await clickText('.modal-foot .btn', '只下載已解鎖的');
+  await waitFor(() => document.querySelector('#badge-queue')?.textContent === '' && fs.existsSync(path.join(DL, '台北的雨.srt')), null, 15000).catch(() => {});
+  await sleep(800);
+  check('選不扣次數：沒有呼叫官方下載', !suno.state.dlCalls.includes(suno.id(5)) && suno.state.used === 0);
+  check('選不扣次數：SRT 照樣下載、MP3 沒下載', fs.existsSync(path.join(DL, '台北的雨.srt')) && !fs.existsSync(path.join(DL, '台北的雨.mp3')));
+  await win.evaluate(() => window.xk.dl.clear());
   await win.evaluate(() => { const c = document.querySelector('#selAll'); c.checked = true; c.dispatchEvent(new Event('change')); });
   await click('#btnDownload');
+  await waitFor(() => document.querySelector('.unlock-box'));
+  check('全選 6 首：5 首要解鎖，1 首已解鎖', (await text('.unlock-box')).includes('5 首還沒在 Suno 解鎖'));
+  await shot('04-unlock');
+  await clickText('.modal-foot .btn', '解鎖並下載（用 5 次）');
   await click('#nav-queue');
   await waitFor(() => document.querySelectorAll('.job').length === 6);
   check('佇列有 6 首', true);
@@ -169,6 +188,9 @@ try {
   const srtText = fs.readFileSync(path.join(DL, '夏日微風.srt'), 'utf8');
   check('SRT 有 BOM、去掉 [Verse]、提早 0.1 秒', srtText.startsWith('﻿1\r\n00:00:01,900 --> ') && srtText.includes('夏天的風吹過海邊') && !srtText.includes('[Verse]'), JSON.stringify(srtText.slice(0, 80)));
   check('MP3 內容完整', fs.statSync(path.join(DL, '夏日微風.mp3')).size === fs.statSync('e2e/fixtures/tone.mp3').size);
+  check('官方下載：解鎖 5 首、扣 5 次（已解鎖的不扣）', suno.state.used === 5, suno.state.used);
+  await waitFor(() => document.querySelector('#quota')?.textContent.includes('剩 15'), null, 8000).catch(() => {});
+  check('下載後剩餘次數更新為 15', (await text('#quota')).includes('剩 15'), await text('#quota'));
   // 再下載一次：沿用同樣檔名、不會變成 (2)
   await win.evaluate(async (id) => { await window.xk.dl.add([id], ['srt']); }, suno.id(2));
   await waitFor(() => !document.querySelector('.job.run, .job.wait'), null, 15000);

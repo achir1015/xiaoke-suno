@@ -5,7 +5,7 @@ import { xk, cleanErr } from './platform.js';
 import { S } from './state.js';
 import { runAgent, TOOL_LABEL } from './agent.js';
 import { voice } from './voice.js';
-import { filtered, renderLibrary } from './library.js';
+import { filtered, renderLibrary, enqueue } from './library.js';
 
 const chat = { log: [], previous: null, busy: false, cancel: null };
 
@@ -30,6 +30,7 @@ function ctx() {
     sunoState: () => S.suno,
     filter: (f) => { const keep = S.filter; S.filter = { ...keep, ...f, sort: keep.sort }; try { return filtered(); } finally { S.filter = keep; } },
     select: (ids) => { S.selected = new Set(ids); renderLibrary(); },
+    enqueue: (ids, formats) => enqueue(ids, formats),
     confirm: (msg) => confirmBox(msg, { ok: '同意', title: '小柯想做這件事' }),
   };
 }

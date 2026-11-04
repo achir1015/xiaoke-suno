@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TONE = fs.readFileSync(path.join(here, 'fixtures', 'tone.mp3'));
 const COVER = fs.readFileSync(path.join(here, 'fixtures', 'cover.jpg'));
-const TOKEN = 'fake-clerk-jwt';
+// Clerk 的 __session 是 JWT；Suno 新版網頁不提供 window.Clerk，App 要從 cookie 判斷登入
+const b64u = (o) => Buffer.from(JSON.stringify(o)).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+const TOKEN = `${b64u({ alg: 'RS256' })}.${b64u({ sub: 'user_x', exp: Math.floor(Date.now() / 1000) + 86400 * 30 })}.sig`;
 
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 // 第一行 [Verse] 標籤、第三行有一個字間隔異常（15 秒）
@@ -22,7 +24,7 @@ const LYRICS = [
 export function makeSongs(base) {
   const mk = (n, title, extra = {}) => ({
     id: id(n), title, status: 'complete', created_at: `2026-10-${String(10 + n).padStart(2, '0')}T08:00:00Z`,
-    audio_url: `${base}/cdn/${id(n)}.mp3`, image_url: `${base}/cdn/image_${id(n)}.jpg`, image_large_url: `${base}/cdn/image_large_${id(n)}.jpg`,
+    audio_url: 'https://studio-api.prod.suno.com/api/forbidden', video_url: `${base}/cdn/${id(n)}.mp4`, is_download_unlocked: n === 2, image_url: `${base}/cdn/image_${id(n)}.jpg`, image_large_url: `${base}/cdn/image_large_${id(n)}.jpg`,
     display_name: '小柯測試', handle: 'xiaoke_tester', major_model_version: 'v5', is_liked: n === 1,
     metadata: { duration: 30, tags: n === 3 ? 'ambient piano, instrumental' : 'mandopop, warm acoustic guitar', prompt: n === 3 ? '' : LYRICS.map((l) => l[0]).join('\n'), type: 'gen', make_instrumental: n === 3 },
     ...extra,
@@ -53,22 +55,20 @@ function aligned(clipId) {
 
 const page = (body) => `<!doctype html><html><head><meta charset="utf-8"><title>Suno</title></head><body style="background:#111;color:#eee;font:16px sans-serif">
 <script>
-  window.Clerk = { loaded: true, load: async () => {}, session: document.cookie.includes('fake_login=1') ? { getToken: async () => ${JSON.stringify(TOKEN)} } : null,
-    user: document.cookie.includes('fake_login=1') ? { username: 'xiaoke_tester', fullName: '小柯測試' } : null };
   document.cookie = 'suno_device_id=dev-123; path=/';
 </script>${body}</body></html>`;
 
 export async function fakeSuno() {
-  const state = { calls: [], wav: {} };
+  const state = { calls: [], wav: {}, used: 0, dlCalls: [], unlocked: new Set([id(2)]) };
   const srv = http.createServer((req, res) => {
     const base = `http://127.0.0.1:${srv.address().port}`;
-    const songs = makeSongs(base);
+    const songs = makeSongs(base).map((s) => ({ ...s, is_download_unlocked: state.unlocked.has(s.id) }));
     const u = new URL(req.url, base);
     state.calls.push(`${req.method} ${u.pathname}`);
     const json = (o, code = 200) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const html = (s) => { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(s); };
     if (u.pathname === '/') return html(page('<h1>假的 Suno 首頁</h1><a href="/workspace">工作區</a>'));
-    if (u.pathname === '/login') { res.writeHead(302, { 'Set-Cookie': 'fake_login=1; Path=/; Max-Age=2592000', Location: '/' }); return res.end(); }
+    if (u.pathname === '/login') { res.writeHead(302, { 'Set-Cookie': [`__session=${TOKEN}; Path=/; Max-Age=2592000`, 'fake_login=1; Path=/; Max-Age=2592000'], Location: '/' }); return res.end(); }
     // 工作區：網頁自己呼叫 API（測試被動收集）並列出 /song/ 連結（測試抓取這一頁）
     if (u.pathname === '/workspace') {
       return html(page(`<h1>我的工作區</h1><div id="list"></div>
@@ -77,10 +77,31 @@ export async function fakeSuno() {
 });</script>`));
     }
     if (u.pathname.startsWith('/song/')) return html(page(`<h1>歌曲頁</h1><a href="${u.pathname}">本頁</a>`));
+    // 官方下載給的有時效網址（像 S3 的簽章網址）
+    if (u.pathname.startsWith('/s3/')) {
+      if (u.searchParams.get('Signature') !== 'ok') { res.writeHead(403); return res.end('denied'); }
+      res.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Content-Length': TONE.length, 'Access-Control-Allow-Origin': '*' });
+      return res.end(TONE);
+    }
     if (u.pathname.startsWith('/cdn/')) {
+      if (/\.mp3$/.test(u.pathname)) { res.writeHead(403, { 'Content-Type': 'text/xml' }); return res.end('<Error><Code>MissingKey</Code></Error>'); }
       const isImg = /\.jpg$/.test(u.pathname);
       res.writeHead(200, { 'Content-Type': isImg ? 'image/jpeg' : 'audio/mpeg', 'Content-Length': (isImg ? COVER : TONE).length, 'Access-Control-Allow-Origin': '*' });
       return res.end(isImg ? COVER : TONE);
+    }
+    // 網站自己的 API：suno.com/a/api/...（官方下載、方案資訊）
+    if (u.pathname.startsWith('/a/api/')) {
+      if (req.headers.authorization !== `Bearer ${TOKEN}`) return json({ detail: 'Unauthorized' }, 401);
+      if (u.pathname === '/a/api/billing/info/') return json({ plan: { name: 'Pro Plan' }, renews_on: '2026-11-27T01:04:35Z', download_usage: { current_period_downloads_used: state.used, current_period_downloads_limit: 20, additional_download_remaining: 0 } });
+      let m;
+      if ((m = /^\/a\/api\/download\/clip\/([0-9a-f-]{36})$/.exec(u.pathname))) {
+        const cid = m[1];
+        state.dlCalls.push(cid);
+        // 第一次呼叫就算解鎖（扣 1 次），先回 preparing，下一次才給網址
+        if (!state.unlocked.has(cid)) { state.unlocked.add(cid); state.used++; return json({ ok: true, status: 'preparing' }); }
+        return json({ ok: true, status: 'ready', download_url: `${base}/s3/studio/uploads/${cid}_paid_wm.${u.searchParams.get('format') || 'mp3'}?AWSAccessKeyId=x&Signature=ok&Expires=9` });
+      }
+      return json({ detail: 'Not found' }, 404);
     }
     if (u.pathname.startsWith('/api/')) {
       res.setHeader('Access-Control-Allow-Origin', '*');

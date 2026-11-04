@@ -18,7 +18,9 @@ export async function loadSongs() {
   updateBadges();
   renderMarksNav();
   if (S.view === 'library') renderLibrary();
+  if (S.suno.loggedIn) quotaSoon();
 }
+const quotaSoon = debounce(() => refreshQuota(), 1500);
 
 const dur = (s) => (s ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}` : '');
 const day = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }); };
@@ -36,6 +38,7 @@ export function filtered() {
     if (f.show === 'lyrics' && (s.instrumental || !s.lyrics)) return false;
     if (f.show === 'inst' && !s.instrumental) return false;
     if (f.show === 'liked' && !s.liked) return false;
+    if (f.show === 'unlocked' && !s.unlocked) return false;
     return true;
   });
   const by = {
@@ -75,7 +78,7 @@ export function openMarks() {
 function buildTools(host) {
   const dl = S.settings.download;
   const q = h('input', { type: 'search', id: 'q', placeholder: '🔍 搜尋歌名、風格或歌詞（Ctrl+F）', value: S.filter.q, oninput: debounce((e) => { S.filter.q = e.target.value; renderList(); }, 200) });
-  const show = h('div', { class: 'seg', id: 'show' }, [['all', '全部'], ['todo', '未下載'], ['done', '已下載'], ['lyrics', '有歌詞'], ['inst', '純音樂'], ['liked', '❤️ 按讚']].map(([id, t]) =>
+  const show = h('div', { class: 'seg', id: 'show' }, [['all', '全部'], ['todo', '未下載'], ['done', '已下載'], ['lyrics', '有歌詞'], ['inst', '純音樂'], ['unlocked', '🔓 已解鎖'], ['liked', '❤️ 按讚']].map(([id, t]) =>
     h('button', { class: S.filter.show === id ? 'on' : '', dataset: { v: id }, onclick: (e) => { S.filter.show = id; $$('#show button').forEach((b) => b.classList.toggle('on', b.dataset.v === id)); renderList(); } }, t)));
   const sort = h('select', { id: 'sort', title: '排序', onchange: (e) => { S.filter.sort = e.target.value; renderList(); } },
     [['new', '最新的在前'], ['old', '最舊的在前'], ['title', '依歌名'], ['dur', '依長度']].map(([v, t]) => h('option', { value: v, selected: S.filter.sort === v }, t)));
@@ -96,6 +99,7 @@ function buildTools(host) {
       h('div', { class: 'dlbar' },
         h('label', { class: 'chk all' }, h('input', { type: 'checkbox', id: 'selAll', onchange: (e) => { const ids = filtered().map((s) => s.id); if (e.target.checked) ids.forEach((id) => S.selected.add(id)); else ids.forEach((id) => S.selected.delete(id)); renderList(); } }), h('span', { id: 'selText' }, '全選')),
         fmts, off, h('span', { class: 'sp' }),
+        h('span', { class: 'quota', id: 'quota', title: 'Suno 官方下載 MP3／WAV 的次數：還沒解鎖的歌每首用 1 次，解鎖過的不再扣' }, '🎫 下載次數 …'),
         h('button', { class: 'btn ghost', id: 'btnOpenDir', title: S.settings.download.dir, onclick: () => xk.dir.open() }, '📂 下載資料夾'),
         h('button', { class: 'btn primary big', id: 'btnDownload', onclick: () => downloadSelected() }, '⬇️ 下載所選'))),
     h('div', { class: 'lib-list', id: 'libList' }));
@@ -169,7 +173,7 @@ function songRow(s) {
     h('button', { class: 'cover', title: on && isPlaying() ? '暫停' : '邊聽邊看字幕', onclick: () => listen(s.id) },
       s.thumb ? h('img', { src: s.thumb, alt: '', loading: 'lazy' }) : h('span', {}, '🎵'), h('i', {}, on && isPlaying() ? '⏸' : '▶')),
     h('div', { class: 'info', onclick: () => openDetail(s.id) },
-      h('div', { class: 't' }, s.title, s.instrumental && h('span', { class: 'tag inst' }, '純音樂'), s.liked && h('span', { class: 'tag' }, '❤️'),
+      h('div', { class: 't' }, s.title, s.instrumental && h('span', { class: 'tag inst' }, '純音樂'), s.unlocked && h('span', { class: 'tag unl', title: '已在 Suno 解鎖下載，再下載 MP3 不扣次數' }, '🔓'), s.liked && h('span', { class: 'tag' }, '❤️'),
         marks.map((m) => h('span', { class: 'mk', style: { '--mc': m.color } }, m.icon, ' ', m.name))),
       h('div', { class: 'sub' }, [s.tags, s.model].filter(Boolean).join(' · ') || ' ')),
     h('span', { class: 'du' }, dur(s.duration)),
@@ -222,12 +226,57 @@ export async function scanPage() {
   } catch (e) { toast(cleanErr(e), { type: 'error', ms: 6000 }); return null; } finally { if (b) { b.disabled = false; b.textContent = '📥 抓取 Suno 目前頁面'; } }
 }
 
-export async function enqueue(ids, formats) {
+// 下載次數：Suno 官方下載 MP3／WAV，還沒解鎖的歌每首用 1 次（解鎖後隨時可再下載）
+export async function refreshQuota() {
+  const el = $('#quota');
   try {
-    const n = await xk.dl.add(ids, formats || S.settings.download.formats);
-    toast(n ? `⬇️ 已加入下載佇列 ${n} 首` : '這些歌已經在佇列裡了');
+    S.quota = await xk.suno.quota();
+    if (el) { el.textContent = `🎫 下載次數 剩 ${S.quota.remaining}`; el.classList.toggle('low', S.quota.remaining < 5); }
+  } catch { S.quota = null; if (el) el.textContent = '🎫 下載次數 ?'; }
+  return S.quota;
+}
+
+// 加入下載：要下載 MP3／WAV 而且還沒解鎖的歌，先告訴使用者會用掉幾次，同意了才解鎖
+export async function enqueue(ids, formats) {
+  formats = formats || S.settings.download.formats;
+  try {
+    const needAudio = formats.includes('mp3') || formats.includes('wav');
+    const songs = ids.map(songById).filter(Boolean);
+    const locked = needAudio ? songs.filter((s) => !s.unlocked && !(S.settings.download.skipExisting && s.files && s.files.mp3 && !formats.includes('wav'))) : [];
+    let unlockIds = [];
+    if (locked.length) {
+      const q = await refreshQuota();
+      const left = q ? q.remaining : 0;
+      const can = Math.min(left, locked.length);
+      const choice = await unlockBox(songs.length, locked.length, q);
+      if (!choice) return 0;
+      if (choice === 'unlock') unlockIds = locked.slice(0, can).map((s) => s.id);
+    }
+    const unlockSet = new Set(unlockIds);
+    let n = 0;
+    if (unlockIds.length) n += await xk.dl.add(unlockIds, formats, { allowUnlock: true });
+    const rest = ids.filter((id) => !unlockSet.has(id));
+    if (rest.length) n += await xk.dl.add(rest, formats, { allowUnlock: false });
+    toast(n ? `⬇️ 已加入下載佇列 ${n} 首${unlockIds.length ? `（其中 ${unlockIds.length} 首會解鎖）` : ''}` : '這些歌已經在佇列裡了');
     return n;
   } catch (e) { toast(cleanErr(e), { type: 'error' }); return 0; }
+}
+
+function unlockBox(total, lockedN, q) {
+  const left = q ? q.remaining : null;
+  const can = left == null ? 0 : Math.min(left, lockedN);
+  const renew = q && q.renews ? new Date(q.renews).toLocaleDateString('zh-TW') : '';
+  const body = h('div', { class: 'unlock-box' },
+    h('p', {}, `這次要下載 ${total} 首，其中 `, h('b', {}, `${lockedN} 首還沒在 Suno 解鎖`), '。'),
+    h('p', {}, 'Suno 現在下載 MP3／WAV 要「解鎖」：每首用掉 1 次下載次數，解鎖過的歌之後隨時可以再下載，不會重複扣。SRT、LRC、歌詞、封面不受影響。'),
+    q ? h('div', { class: 'quota-card' },
+      h('b', {}, `🎫 目前剩 ${q.remaining} 次`),
+      h('span', { class: 'muted' }, `（${q.plan || 'Suno 方案'}：本期 ${q.used}／${q.limit} 次${q.extra ? `，加購剩 ${q.extra} 次` : ''}${renew ? `，${renew} 重置` : ''}）`))
+      : h('p', { class: 'hint' }, '⚠️ 讀不到剩餘次數，請確認已登入 Suno。'),
+    left != null && left < lockedN && h('p', { class: 'warn-text' }, `次數不夠：只能解鎖前 ${can} 首，其餘 ${lockedN - can} 首只會下載 SRT 等文字檔。`));
+  const buttons = [{ label: '取消', value: null }, { label: '只下載已解鎖的（不扣次數）', value: 'skip' }];
+  if (can > 0) buttons.push({ label: `解鎖並下載（用 ${can} 次）`, value: 'unlock', primary: true });
+  return modal({ title: '🎫 會用到 Suno 下載次數', body, buttons }).done;
 }
 
 async function downloadSelected() {

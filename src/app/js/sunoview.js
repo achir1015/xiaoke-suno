@@ -3,7 +3,7 @@ import { h, fill, $ } from './util.js';
 import { toast, confirmBox, modal } from './ui.js';
 import { xk, cleanErr } from './platform.js';
 import { S } from './state.js';
-import { scanPage, enqueue, loadSongs } from './library.js';
+import { scanPage, enqueue, loadSongs, refreshQuota } from './library.js';
 import { syncSunoView } from './app.js';
 
 const LINKS = [
@@ -50,6 +50,7 @@ export function sunoStateChanged() {
   $('#snSong').hidden = !songId(s.url);
   $('#snLogout').hidden = !s.loggedIn;
   $('#snChrome').hidden = !!s.loggedIn;
+  if (s.loggedIn && !S.quota) refreshQuota();
   // Google 擋下內建網頁的登入：直接帶使用者改用 Chrome 登入
   if (/accounts\.google\.com\/.*(rejected|disallowed)/.test(s.url || '') && !chromeBusy && rejectedShown !== s.url) { rejectedShown = s.url; chromeLogin(true); }
   const tip = $('#snTip');

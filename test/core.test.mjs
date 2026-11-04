@@ -108,12 +108,17 @@ test('雲端 suno.gs：setupSuno 產生金鑰與設定碼', () => {
   assert.equal(g.ctx.setupSuno(), code, '再執行一次金鑰不變');
 });
 
-test('Suno 回應解析：工作區格式、CDN 網址、不可下載的歌', () => {
-  const { toClip, harvest, downloadable } = require('../src/main/suno.js');
+test('Suno 回應解析：工作區格式、CDN 網址、解鎖狀態、不可下載的歌', () => {
+  const { toClip, harvest, downloadable, jwtExp } = require('../src/main/suno.js');
+  const jwt = 'a.' + Buffer.from(JSON.stringify({ exp: 1893456000 })).toString('base64').replace(/=+$/, '') + '.s';
+  assert.equal(jwtExp(jwt), 1893456000);
+  assert.equal(jwtExp('壞掉'), 0);
   const id = '11111111-2222-4333-8444-555555555555';
   const c = toClip({ clip: { id, title: ' 歌 ', audio_url: 'https://audiopipe.suno.ai/?item_id=x', image_url: 'https://cdn2.suno.ai/a.jpeg', status: 'complete', metadata: { duration: 12.5, tags: 'pop', prompt: '詞' } } });
   assert.equal(c.title, '歌');
-  assert.equal(c.audio, `https://cdn1.suno.ai/${id}.mp3`);
+  assert.equal(c.audio, '', '舊的公開音檔網址已失效，MP3 要走官方下載');
+  assert.equal(toClip({ id, title: 'x', audio_url: 'https://studio-api.prod.suno.com/api/forbidden', is_download_unlocked: true, video_url: 'https://cdn2.suno.ai/v.mp4', metadata: {} }).unlocked, true);
+  assert.equal(toClip({ id, title: 'x', audio_url: 'https://studio-api.prod.suno.com/api/forbidden', video_url: 'https://cdn2.suno.ai/v.mp4', metadata: {} }).video, 'https://cdn1.suno.ai/v.mp4');
   assert.equal(c.thumb, 'https://cdn1.suno.ai/a.jpeg');
   assert.equal(c.lyrics, '詞');
   const found = harvest({ project_clips: [{ clip: { id, audio_url: '', status: 'complete', metadata: {} } }], other: { id: 'not-uuid', audio_url: '' } });

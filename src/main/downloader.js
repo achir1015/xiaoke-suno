@@ -44,7 +44,7 @@ class Library {
       // 有些 API 回應沒有歌詞：不要用空白蓋掉之前拿到的
       const next = { ...old, ...c, lyrics: c.lyrics || (old && old.lyrics) || '', seen: (old && old.seen) || now, src: (old && old.src) || src };
       // 內容真的有變才更新修改時間（雲端同步只送有變的）
-      const same = old && ['title', 'audio', 'image', 'duration', 'tags', 'lyrics', 'liked'].every((k) => old[k] === next[k]);
+      const same = old && ['title', 'audio', 'image', 'duration', 'tags', 'lyrics', 'liked', 'unlocked'].every((k) => old[k] === next[k]);
       next.u = same ? old.u : now;
       this.data.clips[c.id] = next;
     }
@@ -111,7 +111,8 @@ class Downloader {
   }
 
   // 加入佇列；同一首還在等或下載中就不重複加
-  add(ids, formats) {
+  // allowUnlock：使用者同意這批「還沒解鎖」的歌用掉下載次數（MP3／WAV 走 Suno 官方下載）
+  add(ids, formats, { allowUnlock = false } = {}) {
     formats = FORMATS.filter((f) => formats.includes(f));
     if (!formats.length) throw new Error('請至少選一種要下載的格式');
     let n = 0;
@@ -119,7 +120,7 @@ class Downloader {
       const clip = this.lib.data.clips[id];
       if (!clip) continue;
       if (this.jobs.some((j) => j.id === id && (j.state === 'wait' || j.state === 'run'))) continue;
-      this.jobs.push({ key: ++this.seq, id, title: clip.title, formats, state: 'wait', step: '', pct: 0, msg: '', done: [], failed: [] });
+      this.jobs.push({ key: ++this.seq, id, title: clip.title, formats, allowUnlock: !!allowUnlock, state: 'wait', step: '', pct: 0, msg: '', done: [], failed: [] });
       n++;
     }
     this.emit(true);
@@ -230,9 +231,14 @@ class Downloader {
       try {
         if (dl.skipExisting && reg[fmt] === file && fs.existsSync(file)) { j.done.push(fmt); continue; }
         const onPct = (p) => { j.pct = (i + p) / steps; this.emit(); };
-        if (fmt === 'mp3') await this.fetchTo(clip.audio, file, signal, onPct);
-        else if (fmt === 'jpg') { if (!clip.image) throw new Error('沒有封面'); await this.fetchTo(clip.image, file, signal, onPct); }
-        else if (fmt === 'wav') await this.fetchTo(await this.suno.wavUrl(clip.id, signal), file, signal, onPct);
+        if (fmt === 'mp3' || fmt === 'wav') {
+          // 沒解鎖、使用者也沒同意用下載次數：不呼叫官方下載（呼叫就會扣次數）
+          if (!clip.unlocked && !j.allowUnlock) throw new Error('還沒解鎖，下載要用 1 次 Suno 下載次數');
+          const url = await this.suno.downloadUrl(clip.id, fmt, signal);
+          clip.unlocked = true;
+          clip.u = Date.now();
+          await this.fetchTo(url, file, signal, onPct);
+        } else if (fmt === 'jpg') { if (!clip.image) throw new Error('沒有封面'); await this.fetchTo(clip.image, file, signal, onPct); }
         else if (fmt === 'txt') {
           if (!clip.lyrics.trim()) throw new Error('沒有歌詞');
           writeAtomic(file, text(clip.lyrics.replace(/\r?\n/g, '\r\n') + '\r\n'));

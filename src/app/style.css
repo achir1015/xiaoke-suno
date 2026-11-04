@@ -124,6 +124,13 @@ input[type=range] { accent-color: var(--accent); }
 .info .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
 .info .sub { color: var(--fg3); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tag { font-size: 11px; font-weight: 500; padding: 0 7px; border-radius: 999px; background: var(--bg4); color: var(--fg2); flex: none; }
+.tag.unl { background: color-mix(in srgb, var(--ok) 22%, transparent); }
+.quota { font-size: 13px; color: var(--fg2); padding: 4px 10px; border: 1px solid var(--line2); border-radius: 999px; white-space: nowrap; }
+.quota.low { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 60%, transparent); }
+.unlock-box p { margin: 6px 0; line-height: 1.7; }
+.quota-card { background: var(--bg3); border: 1px solid var(--line2); border-radius: 10px; padding: 10px 12px; margin: 10px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.quota-card b { font-size: 16px; }
+.warn-text { color: var(--warn); }
 .tag.inst { background: color-mix(in srgb, var(--info) 22%, transparent); color: var(--info); }
 .mk { font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--mc) 25%, transparent); color: var(--fg); border: 1px solid color-mix(in srgb, var(--mc) 50%, transparent); flex: none; white-space: nowrap; }
 button.mk { cursor: pointer; opacity: .55; }

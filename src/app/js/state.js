@@ -11,6 +11,7 @@ export const S = {
   cloud: { status: 'off' },
   zoom: 1,
   update: null,
+  quota: null,        // Suno 下載次數
 };
 
 export const songById = (id) => S.songs.find((s) => s.id === id);

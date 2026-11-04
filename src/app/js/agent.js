@@ -63,7 +63,8 @@ export async function callTool(name, a, ctx) {
       if (!list.length) throw new Error('沒有指定要下載的歌');
       if (list.length > 30 && ctx.confirm && !(await ctx.confirm(`小柯想下載 ${list.length} 首歌，確定嗎？`))) return { 取消: '使用者沒有同意' };
       const formats = a.formats && a.formats.length ? a.formats : ctx.settings().download.formats;
-      const n = await xk.dl.add(list.map((s) => s.id), formats);
+      // 走畫面上同一個流程：還沒解鎖的 MP3 會先請使用者確認要不要用下載次數
+      const n = await ctx.enqueue(list.map((s) => s.id), formats);
       return { 已加入佇列: n, 格式: formats, 資料夾: ctx.settings().download.dir };
     }
     case 'select_songs': {

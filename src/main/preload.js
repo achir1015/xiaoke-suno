@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('xk', {
     bounds: (r) => ipcRenderer.send('suno:bounds', r),
     visible: (v) => ipcRenderer.send('suno:visible', v),
     nav: inv('suno:nav'), state: inv('suno:state'), logout: inv('suno:logout'),
+    quota: inv('suno:quota'),
     chromeInfo: inv('suno:chromeInfo'), chromeLogin: inv('suno:chromeLogin'), chromeDone: inv('suno:chromeDone'),
     onState: on('suno:state'),
   },

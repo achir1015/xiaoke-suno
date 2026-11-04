@@ -78,7 +78,7 @@ function bar() {
   tick();
 }
 
-const srcText = (s) => [s.localAudio ? '本機 MP3' : '線上試聽', s.lyricSrc === 'file' ? '已下載的 SRT' : s.lyricSrc === 'suno' ? 'Suno 對時字幕' : ''].filter(Boolean).join('＋');
+const srcText = (s) => [s.localAudio ? '本機 MP3' : s.audioSrc === 'video' ? '線上試聽（影片音軌）' : s.audioSrc === 'unlocked' ? 'Suno 官方音檔' : '線上試聽', s.lyricSrc === 'file' ? '已下載的 SRT' : s.lyricSrc === 'suno' ? 'Suno 對時字幕' : ''].filter(Boolean).join('＋');
 
 // 播放並同步字幕；offset 有給時改用即時產生的字幕（詳細資料裡調整「提早秒數」用）
 export async function listen(id, { offset, at } = {}) {
