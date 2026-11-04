@@ -34,6 +34,8 @@ window.__xkRes = (id, ok, data) => {
   if (ok) w.res(data); else w.rej(new Error(data));
 };
 function nat(method, ...args) {
+  // iOS 傳字串時會吃掉開頭的 BOM：拿掉後另外傳「要加 BOM」旗標，由 App 補上 EF BB BF
+  if (IOS && method === 'writeText' && String(args[1]).startsWith('﻿')) args = [args[0], String(args[1]).slice(1), args[2], 'bom'];
   return new Promise((res, rej) => {
     const id = 'r' + ++seq;
     waits.set(id, { res, rej });

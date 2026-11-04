@@ -25,7 +25,11 @@ final class Native {
         case "importLogin": return try await importLogin(s(0))
         case "logout": return await logout()
         case "download": return try await download(s(0), s(1), s(3))
-        case "writeText": return try write(s(0), Data(s(1).utf8))
+        case "writeText":
+            // 網頁拿掉了開頭的 BOM（iOS 傳字串會吃掉），旗標是 bom 時在這裡補上
+            var d = s(3) == "bom" ? Data([0xEF, 0xBB, 0xBF]) : Data()
+            d.append(Data(s(1).utf8))
+            return try write(s(0), d)
         case "listFiles": return (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
         case "exists": return FileManager.default.fileExists(atPath: path(s(0)))
         case "readText": return try String(contentsOfFile: path(s(0)), encoding: .utf8)
