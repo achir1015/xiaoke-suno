@@ -23,7 +23,9 @@ function findBrowser() {
   return hit ? { exe: hit[0], name: hit[1] } : null;
 }
 
-const BASE_ARGS = ['--no-first-run', '--no-default-browser-check', '--disable-sync', '--password-store=basic'];
+// Mac 的 Chrome 用「鑰匙圈」加密 cookie，背景開的無畫面 Chrome 常拿不到鑰匙圈而讀不出來；
+// 這個專用的登入設定檔改用固定的鑰匙（只放 Suno 的登入狀態），開啟和讀取兩次才會一致
+const BASE_ARGS = ['--no-first-run', '--no-default-browser-check', '--disable-sync', '--password-store=basic', ...(process.platform === 'darwin' ? ['--use-mock-keychain'] : [])];
 
 class ChromeLogin {
   constructor(profileDir) { this.dir = profileDir; this.child = null; }
@@ -49,7 +51,8 @@ class ChromeLogin {
     const c = this.child;
     if (!c) return;
     if (process.platform === 'win32') execFile('taskkill', ['/PID', String(c.pid)], () => {}); // 不加 /F、/T：送出關閉視窗訊息，Chrome 會先存好 cookie
-    else try { c.kill('SIGTERM'); } catch {}
+    // Mac／Linux：SIGTERM 會直接結束、剛拿到的 cookie 還沒寫進硬碟；SIGINT 才會正常關閉並存檔（Mac 實測）
+    else try { c.kill('SIGINT'); } catch {}
     setTimeout(() => { if (this.child === c) try { c.kill('SIGKILL'); } catch {} }, 15000);
   }
 
